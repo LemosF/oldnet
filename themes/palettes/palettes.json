@@ -27,7 +27,9 @@
       "titleInactiveText": "#9A98A3",
       "tooltip": "#1C1C24",
       "complementary": "#08080E",
-      "complementaryText": "#ECE9E4"
+      "complementaryText": "#ECE9E4",
+      "ansi": ["#1C1C22", "#FF5468", "#3CF0B0", "#E3A83B", "#4D8DFF", "#C77DFF", "#3AD7E8", "#C9C6C0"],
+      "ansiBright": ["#4A4A55", "#FF7A8A", "#7AF5C8", "#F0C46A", "#7FAEFF", "#D9A3FF", "#7EF0FF", "#FFFFFF"]
     },
     "HoloTablet": {
       "name": "OldNet Holo Tablet",
@@ -55,7 +57,9 @@
       "titleInactiveText": "#8FB3B8",
       "tooltip": "#0B2226",
       "complementary": "#040E10",
-      "complementaryText": "#DFF7F9"
+      "complementaryText": "#DFF7F9",
+      "ansi": ["#0B2226", "#FF5468", "#3CF0B0", "#E3A83B", "#3A8FE8", "#B07CFF", "#3AD7E8", "#B8D9DC"],
+      "ansiBright": ["#2F4A50", "#FF7A8A", "#7AF5C8", "#F0C46A", "#6FB0FF", "#CBA3FF", "#7EF0FF", "#FFFFFF"]
     },
     "Daylight": {
       "name": "OldNet Daylight",
@@ -83,7 +87,9 @@
       "titleInactiveText": "#6B665D",
       "tooltip": "#FFFFFF",
       "complementary": "#141418",
-      "complementaryText": "#F3EFE6"
+      "complementaryText": "#F3EFE6",
+      "ansi": ["#141418", "#C8283D", "#0A7F63", "#9A6200", "#1F5FBF", "#8A3FA8", "#0B6F80", "#D8D2C4"],
+      "ansiBright": ["#6B665D", "#E0485C", "#12A07D", "#B87A10", "#3A78D8", "#A25BC0", "#1690A5", "#FFFFFF"]
     }
   }
 }
