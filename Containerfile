@@ -8,7 +8,7 @@ ARG IMAGE_VENDOR=oldnet-os
 COPY system_files/ /
 COPY build_files/ /tmp/build_files/
 
-RUN IMAGE_NAME=${IMAGE_NAME} /tmp/build_files/build.sh && \
+RUN IMAGE_NAME=${IMAGE_NAME} bash /tmp/build_files/build.sh && \
     rm -rf /tmp/build_files /var/cache /var/log/* && \
     ostree container commit
 
