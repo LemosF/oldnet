@@ -1,0 +1,10 @@
+OldNet OS
+Copyright 2026 The OldNet OS contributors
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+OldNet OS is based on Bazzite (https://github.com/ublue-os/bazzite), built on
+Universal Blue and Fedora Atomic. OldNet OS is an independent project and is
+not affiliated with or endorsed by the Bazzite, Universal Blue or Fedora
+projects. The OS images bundle third-party software under their own licenses;
+see docs/COMPONENTS.md.

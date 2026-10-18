@@ -1,0 +1,19 @@
+{
+    "KPackageStructure": "Plasma/LookAndFeel",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "OldNet OS"
+            }
+        ],
+        "Category": "",
+        "Description": "OldNet OS global theme (Night Market palette)",
+        "Description[pt_PT]": "Tema global do OldNet OS (paleta Night Market)",
+        "Id": "org.oldnet.desktop",
+        "License": "Apache-2.0",
+        "Name": "OldNet",
+        "Version": "0.1",
+        "Website": "https://github.com/LemosF/oldnet"
+    },
+    "X-Plasma-APIVersion": "2"
+}
