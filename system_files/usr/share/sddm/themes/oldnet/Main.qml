@@ -1,4 +1,5 @@
-// OldNet SDDM theme (NAO TESTADO). Qt6/SDDM 0.21. Contexto: sddm, userModel, sessionModel, config.
+// OldNet SDDM theme (Qt 6 / SDDM 0.21). Context objects: sddm, userModel, sessionModel,
+// keyboard, config, textConstants. Laid out for 1920x1080 and scaled to the screen.
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -6,16 +7,21 @@ import QtQuick.Shapes
 
 Rectangle {
     id: root
-    width: 1920
-    height: 1080
 
     readonly property var palettes: ({
         "a":     { bg: "#0A0A0C", surf: "#121216", edge: "#2A2A33", text: "#ECE9E4", dim: "#9A98A3", a1: "#FF5468", a2: "#3CF0B0", a3: "#3AD7E8", onA2: "#0A0A0C" },
-        "b":     { bg: "#061416", surf: "#0B2226", edge: "#12363C", text: "#DFF7F9", dim: "#5E8A90", a1: "#E3A83B", a2: "#7EF0FF", a3: "#3AD7E8", onA2: "#061416" },
+        "b":     { bg: "#061416", surf: "#0B2226", edge: "#12363C", text: "#DFF7F9", dim: "#8FB3B8", a1: "#E3A83B", a2: "#7EF0FF", a3: "#3AD7E8", onA2: "#061416" },
         "light": { bg: "#F3EFE6", surf: "#FFFFFF", edge: "#C9C2B4", text: "#141418", dim: "#6B665D", a1: "#C8283D", a2: "#0A7F63", a3: "#0B6F80", onA2: "#FFFFFF" }
     })
     readonly property string pal: (config.palette && palettes[config.palette]) ? config.palette : "a"
     readonly property var c: palettes[pal]
+    // 1 at 1920x1080; smaller screens (Steam Deck 1280x800) shrink everything evenly.
+    readonly property real s: Math.min(width / 1920, height / 1080)
+    readonly property string uiFont: "Chakra Petch"
+    readonly property string monoFont: "IBM Plex Mono"
+
+    width: 1920
+    height: 1080
     color: c.bg
 
     Image {
@@ -25,112 +31,261 @@ Rectangle {
         asynchronous: true
     }
 
-    // barra superior
-    Item {
-        id: topBar
-        width: parent.width; height: 110
-        Text { x: 80; anchors.verticalCenter: parent.verticalCenter; text: "OLDNET OS"; color: root.c.text
-               font.family: "Chakra Petch"; font.pixelSize: 34; font.bold: true; font.letterSpacing: 6 }
-        Text { id: clock; anchors.right: parent.right; anchors.rightMargin: 80; anchors.verticalCenter: parent.verticalCenter
-               color: root.c.a2; font.family: "IBM Plex Mono"; font.pixelSize: 26
-               text: Qt.formatTime(new Date(), "hh:mm") }
-        Timer { interval: 1000; running: true; repeat: true; onTriggered: clock.text = Qt.formatTime(new Date(), "hh:mm") }
+    // Top bar: name and clock
+    Text {
+        x: 80 * root.s; y: 36 * root.s
+        text: "OLDNET OS"
+        color: root.c.text
+        font { family: root.uiFont; pixelSize: 34 * root.s; bold: true; letterSpacing: 6 * root.s }
+    }
+    Text {
+        id: clock
+        anchors { right: parent.right; rightMargin: 80 * root.s }
+        y: 40 * root.s
+        color: root.c.a2
+        font { family: root.monoFont; pixelSize: 26 * root.s }
+        text: Qt.formatTime(new Date(), "hh:mm")
+        Timer {
+            interval: 1000; running: true; repeat: true
+            onTriggered: clock.text = Qt.formatTime(new Date(), "hh:mm")
+        }
     }
 
+    // Left: greeting
     Column {
-        x: 140; y: 400; spacing: 14
-        Text { text: "Bem-vindo"; color: root.c.text; font.family: "Chakra Petch"; font.pixelSize: 76; font.bold: true }
-        Text { text: "ESCOLHE UM UTILIZADOR PARA ENTRAR"; color: root.c.dim; font.family: "IBM Plex Mono"; font.pixelSize: 22; font.letterSpacing: 3 }
-        Rectangle { width: 260; height: 4; color: root.c.a1 }
+        anchors { left: parent.left; leftMargin: 140 * root.s; verticalCenter: parent.verticalCenter }
+        width: panel.x - anchors.leftMargin - 60 * root.s
+        spacing: 14 * root.s
+        Text {
+            width: parent.width
+            text: textConstants.welcomeText.arg(sddm.hostName)
+            color: root.c.text
+            elide: Text.ElideRight
+            font { family: root.uiFont; pixelSize: 56 * root.s; bold: true }
+        }
+        Text {
+            width: parent.width
+            text: textConstants.promptSelectUser.toUpperCase()
+            color: root.c.dim
+            wrapMode: Text.Wrap
+            font { family: root.monoFont; pixelSize: 20 * root.s; letterSpacing: 3 * root.s }
+        }
+        Rectangle { width: 260 * root.s; height: 4 * root.s; color: root.c.a1 }
     }
 
-    // painel de login (chanfrado)
+    // Right: chamfered login panel
     Item {
         id: panel
-        x: parent.width - 700 - 180; y: 290; width: 600; height: 480
+        readonly property real cut: 40 * root.s
+        anchors { right: parent.right; rightMargin: 180 * root.s; verticalCenter: parent.verticalCenter }
+        width: 600 * root.s
+        height: 480 * root.s
+
         Shape {
             anchors.fill: parent
             ShapePath {
                 fillColor: root.c.surf; strokeColor: root.c.edge; strokeWidth: 2
                 startX: 0; startY: 0
-                PathLine { x: 560; y: 0 } PathLine { x: 600; y: 40 } PathLine { x: 600; y: 480 }
-                PathLine { x: 40; y: 480 } PathLine { x: 0; y: 440 } PathLine { x: 0; y: 0 }
+                PathLine { x: panel.width - panel.cut; y: 0 }
+                PathLine { x: panel.width; y: panel.cut }
+                PathLine { x: panel.width; y: panel.height }
+                PathLine { x: panel.cut; y: panel.height }
+                PathLine { x: 0; y: panel.height - panel.cut }
+                PathLine { x: 0; y: 0 }
             }
             ShapePath {
-                fillColor: "transparent"; strokeColor: root.c.a1; strokeWidth: 4
+                fillColor: "transparent"; strokeColor: root.c.a1; strokeWidth: 4 * root.s
                 startX: 0; startY: 0
-                PathLine { x: 560; y: 0 } PathLine { x: 600; y: 40 }
+                PathLine { x: panel.width - panel.cut; y: 0 }
+                PathLine { x: panel.width; y: panel.cut }
             }
         }
+
         ColumnLayout {
-            anchors { fill: parent; margins: 48 }
-            spacing: 16
-            ComboBox {
+            anchors { fill: parent; margins: 48 * root.s }
+            spacing: 16 * root.s
+
+            HudCombo {
                 id: userBox
                 Layout.fillWidth: true
                 model: userModel
                 textRole: "name"
                 currentIndex: userModel.lastIndex
-                font.family: "Chakra Petch"; font.pixelSize: 24
+                font { family: root.uiFont; pixelSize: 24 * root.s }
+                Accessible.name: textConstants.userName
             }
             TextField {
                 id: password
                 Layout.fillWidth: true
                 echoMode: TextInput.Password
-                placeholderText: "Palavra-passe"
-                font.family: "IBM Plex Mono"; font.pixelSize: 20
+                placeholderText: textConstants.password
+                placeholderTextColor: root.c.dim
                 color: root.c.a3
+                selectionColor: root.c.a3
+                selectedTextColor: root.c.bg
+                font { family: root.monoFont; pixelSize: 20 * root.s }
+                padding: 12 * root.s
                 focus: true
-                Keys.onReturnPressed: doLogin()
-                Keys.onEnterPressed: doLogin()
-                background: Rectangle { color: root.c.bg; border.color: root.c.a3; border.width: 2 }
+                Keys.onReturnPressed: root.doLogin()
+                Keys.onEnterPressed: root.doLogin()
+                background: Rectangle {
+                    color: root.c.bg
+                    border.color: password.activeFocus ? root.c.a3 : root.c.edge
+                    border.width: 2
+                }
             }
-            ComboBox {
+            HudCombo {
                 id: sessionBox
                 Layout.fillWidth: true
                 model: sessionModel
                 textRole: "name"
                 currentIndex: sessionModel.lastIndex
-                font.family: "IBM Plex Mono"; font.pixelSize: 16
+                font { family: root.monoFont; pixelSize: 16 * root.s }
+                Accessible.name: textConstants.session
             }
-            Text { id: err; color: root.c.a1; font.family: "IBM Plex Mono"; font.pixelSize: 16; text: "" }
+            Text {
+                id: message
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                color: root.c.a1
+                font { family: root.monoFont; pixelSize: 16 * root.s }
+                text: keyboard.capsLock ? textConstants.capslockWarning : ""
+            }
             Item { Layout.fillHeight: true }
             Button {
-                Layout.preferredWidth: 260; Layout.preferredHeight: 56
-                text: "ENTRAR"
-                font.family: "Chakra Petch"; font.pixelSize: 24; font.bold: true
-                onClicked: doLogin()
-                contentItem: Text { text: parent.text; font: parent.font; color: root.c.onA2; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                background: Rectangle { color: root.c.a2 }
+                id: loginButton
+                Layout.preferredWidth: 260 * root.s
+                Layout.preferredHeight: 56 * root.s
+                text: textConstants.login.toUpperCase()
+                font { family: root.uiFont; pixelSize: 24 * root.s; bold: true }
+                onClicked: root.doLogin()
+                contentItem: Text {
+                    text: loginButton.text; font: loginButton.font; color: root.c.onA2
+                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                }
+                background: Rectangle {
+                    color: root.c.a2
+                    border.color: root.c.text
+                    border.width: loginButton.activeFocus ? 2 : 0
+                }
             }
         }
     }
 
     function doLogin() {
-        err.text = ""
         sddm.login(userBox.currentText, password.text, sessionBox.currentIndex)
     }
 
     Connections {
         target: sddm
-        function onLoginFailed() { err.text = "Falha no inicio de sessao"; password.text = ""; password.forceActiveFocus() }
+        function onLoginFailed() {
+            message.text = textConstants.loginFailed
+            password.text = ""
+            password.forceActiveFocus()
+        }
     }
 
-    // rodape: energia
+    // Bottom right: power actions the system allows
     Row {
-        anchors { right: parent.right; rightMargin: 80; bottom: parent.bottom; bottomMargin: 20 }
-        spacing: 24
+        anchors { right: parent.right; rightMargin: 80 * root.s; bottom: parent.bottom; bottomMargin: 20 * root.s }
+        spacing: 24 * root.s
         Repeater {
-            model: [ { k: "suspend", f: function() { sddm.suspend() } },
-                     { k: "restart", f: function() { sddm.reboot() } },
-                     { k: "shutdown", f: function() { sddm.powerOff() } } ]
-            delegate: Image {
-                width: 64; height: 64
-                source: "assets/" + modelData.k + "-" + root.pal + (ma.containsMouse ? "-hover" : "-normal") + ".svg"
-                MouseArea { id: ma; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: modelData.f() }
+            model: [
+                { k: "suspend",  label: textConstants.suspend,  allowed: sddm.canSuspend },
+                { k: "restart",  label: textConstants.reboot,   allowed: sddm.canReboot },
+                { k: "shutdown", label: textConstants.shutdown, allowed: sddm.canPowerOff }
+            ]
+            delegate: AbstractButton {
+                required property var modelData
+                visible: modelData.allowed
+                width: 64 * root.s; height: 64 * root.s
+                hoverEnabled: true
+                Accessible.name: modelData.label
+                contentItem: Image {
+                    sourceSize: Qt.size(width, height)
+                    source: "assets/" + modelData.k + "-" + root.pal
+                            + (parent.hovered || parent.activeFocus ? "-hover" : "-normal") + ".svg"
+                }
+                onClicked: {
+                    if (modelData.k === "suspend") sddm.suspend()
+                    else if (modelData.k === "restart") sddm.reboot()
+                    else sddm.powerOff()
+                }
             }
         }
     }
-    Text { x: 80; anchors.bottom: parent.bottom; anchors.bottomMargin: 40; text: "BASEADO NO BAZZITE"; color: root.c.dim
-           font.family: "IBM Plex Mono"; font.pixelSize: 16; font.letterSpacing: 3 }
+    Text {
+        x: 80 * root.s
+        anchors { bottom: parent.bottom; bottomMargin: 40 * root.s }
+        text: "BASED ON BAZZITE"
+        color: root.c.dim
+        font { family: root.monoFont; pixelSize: 16 * root.s; letterSpacing: 3 * root.s }
+    }
+
+    // On-screen keyboard (Bazzite deck sets InputMethod=qtvirtualkeyboard). If the
+    // module is missing the Loader just stays empty.
+    Loader {
+        id: virtualKeyboard
+        source: "VirtualKeyboard.qml"
+        width: Math.min(parent.width, 1400 * root.s)
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: Qt.inputMethod.visible ? parent.height - height : parent.height
+        visible: status === Loader.Ready && Qt.inputMethod.visible
+        z: 10
+        Behavior on y { NumberAnimation { duration: 150 } }
+    }
+
+    Component.onCompleted: password.forceActiveFocus()
+
+    // Combo box drawn in the palette (the default style is light and clashes)
+    component HudCombo: ComboBox {
+        id: combo
+        padding: 10 * root.s
+        contentItem: Text {
+            leftPadding: 4 * root.s
+            text: combo.displayText
+            font: combo.font
+            color: root.c.text
+            verticalAlignment: Text.AlignVCenter
+            elide: Text.ElideRight
+        }
+        indicator: Text {
+            x: combo.width - width - combo.padding
+            anchors.verticalCenter: combo.verticalCenter
+            text: "▾"
+            color: root.c.a3
+            font.pixelSize: combo.font.pixelSize
+        }
+        background: Rectangle {
+            color: root.c.bg
+            border.color: combo.activeFocus ? root.c.a3 : root.c.edge
+            border.width: 2
+        }
+        delegate: ItemDelegate {
+            required property var model
+            required property int index
+            width: combo.width
+            highlighted: combo.highlightedIndex === index
+            contentItem: Text {
+                text: model[combo.textRole]
+                font: combo.font
+                color: highlighted ? root.c.bg : root.c.text
+                elide: Text.ElideRight
+            }
+            background: Rectangle { color: highlighted ? root.c.a3 : root.c.surf }
+        }
+        popup: Popup {
+            y: combo.height
+            width: combo.width
+            padding: 2
+            implicitHeight: Math.min(contentItem.implicitHeight + 4, 300 * root.s)
+            contentItem: ListView {
+                clip: true
+                implicitHeight: contentHeight
+                model: combo.popup.visible ? combo.delegateModel : null
+                currentIndex: combo.highlightedIndex
+            }
+            background: Rectangle { color: root.c.surf; border.color: root.c.a3; border.width: 1 }
+        }
+    }
 }
