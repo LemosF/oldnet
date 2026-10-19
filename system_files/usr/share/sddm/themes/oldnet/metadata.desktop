@@ -1,0 +1,12 @@
+[SddmGreeterTheme]
+Name=OldNet
+Description=OldNet OS login (HUD sobre estrutura Welcome)
+Author=OldNet
+Type=sddm-theme
+Version=0.1
+Screenshot=preview.png
+MainScript=Main.qml
+ConfigFile=theme.conf
+Theme-Id=oldnet
+Theme-API=2.0
+QTVersion=6

@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=OldNet OS
+Description=OldNet boot splash (jack-in)
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/oldnet
+ScriptFile=/usr/share/plymouth/themes/oldnet/oldnet.script

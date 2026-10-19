@@ -1,0 +1,11 @@
+{
+  "KPlugin": {
+    "Id": "OldNet-BlissNeon",
+    "Name": "OldNet Bliss Neon",
+    "Authors": [
+      {
+        "Name": "OldNet"
+      }
+    ]
+  }
+}

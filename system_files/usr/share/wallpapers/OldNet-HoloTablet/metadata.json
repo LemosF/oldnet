@@ -1,0 +1,11 @@
+{
+  "KPlugin": {
+    "Id": "OldNet-HoloTablet",
+    "Name": "OldNet Holo Tablet",
+    "Authors": [
+      {
+        "Name": "OldNet"
+      }
+    ]
+  }
+}

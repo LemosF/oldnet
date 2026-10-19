@@ -1,0 +1,37 @@
+# OldNet OS - Plymouth (NAO TESTADO: validar com `plymouthd --debug` / `plymouth --show-splash`)
+Window.SetBackgroundTopColor(0.039, 0.039, 0.047);
+Window.SetBackgroundBottomColor(0.039, 0.039, 0.047);
+
+sw = Window.GetWidth();
+sh = Window.GetHeight();
+
+mark = Image("logo-mark.png");
+mark_sprite = Sprite(mark);
+mark_sprite.SetPosition(sw / 2 - mark.GetWidth() / 2, sh * 0.22, 1);
+
+word = Image("logo-wordmark.png");
+word_sprite = Sprite(word);
+word_sprite.SetPosition(sw / 2 - word.GetWidth() / 2, sh * 0.22 + mark.GetHeight() + 30, 1);
+
+frame = Image("progress-frame.png");
+frame_sprite = Sprite(frame);
+fx = sw / 2 - frame.GetWidth() / 2;
+fy = sh * 0.65;
+frame_sprite.SetPosition(fx, fy, 1);
+
+block_on = Image("progress-block-on.png");
+block_off = Image("progress-block-off.png");
+N = 19;
+for (i = 0; i < N; i++) {
+    block[i] = Sprite(block_off);
+    block[i].SetPosition(fx + 8 + i * 24, fy + 8, 2);
+}
+
+fun boot_progress_cb(time, progress) {
+    n = Math.Int(progress * N);
+    for (i = 0; i < N; i++) {
+        if (i < n) block[i].SetImage(block_on);
+        else block[i].SetImage(block_off);
+    }
+}
+Plymouth.SetBootProgressFunction(boot_progress_cb);

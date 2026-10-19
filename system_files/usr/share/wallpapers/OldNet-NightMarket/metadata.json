@@ -1,0 +1,11 @@
+{
+  "KPlugin": {
+    "Id": "OldNet-NightMarket",
+    "Name": "OldNet Night Market",
+    "Authors": [
+      {
+        "Name": "OldNet"
+      }
+    ]
+  }
+}

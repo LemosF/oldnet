@@ -1,0 +1,145 @@
+{
+ "grid": 32,
+ "hotspots": {
+  "default": {
+   "x": 4,
+   "y": 2
+  },
+  "pointer": {
+   "x": 12,
+   "y": 2
+  },
+  "text": {
+   "x": 16,
+   "y": 16
+  },
+  "vertical-text": {
+   "x": 16,
+   "y": 16
+  },
+  "wait": {
+   "x": 16,
+   "y": 16
+  },
+  "progress": {
+   "x": 4,
+   "y": 2
+  },
+  "help": {
+   "x": 4,
+   "y": 2
+  },
+  "crosshair": {
+   "x": 16,
+   "y": 16
+  },
+  "cell": {
+   "x": 16,
+   "y": 16
+  },
+  "move": {
+   "x": 16,
+   "y": 16
+  },
+  "all-scroll": {
+   "x": 16,
+   "y": 16
+  },
+  "not-allowed": {
+   "x": 16,
+   "y": 16
+  },
+  "no-drop": {
+   "x": 4,
+   "y": 2
+  },
+  "grab": {
+   "x": 16,
+   "y": 16
+  },
+  "grabbing": {
+   "x": 16,
+   "y": 16
+  },
+  "alias": {
+   "x": 4,
+   "y": 2
+  },
+  "copy": {
+   "x": 4,
+   "y": 2
+  },
+  "context-menu": {
+   "x": 4,
+   "y": 2
+  },
+  "zoom-in": {
+   "x": 13,
+   "y": 13
+  },
+  "zoom-out": {
+   "x": 13,
+   "y": 13
+  },
+  "col-resize": {
+   "x": 16,
+   "y": 16
+  },
+  "row-resize": {
+   "x": 16,
+   "y": 16
+  },
+  "ew-resize": {
+   "x": 16,
+   "y": 16
+  },
+  "ns-resize": {
+   "x": 16,
+   "y": 16
+  },
+  "nesw-resize": {
+   "x": 16,
+   "y": 16
+  },
+  "nwse-resize": {
+   "x": 16,
+   "y": 16
+  },
+  "e-resize": {
+   "x": 16,
+   "y": 16
+  },
+  "se-resize": {
+   "x": 16,
+   "y": 16
+  },
+  "s-resize": {
+   "x": 16,
+   "y": 16
+  },
+  "sw-resize": {
+   "x": 16,
+   "y": 16
+  },
+  "w-resize": {
+   "x": 16,
+   "y": 16
+  },
+  "nw-resize": {
+   "x": 16,
+   "y": 16
+  },
+  "n-resize": {
+   "x": 16,
+   "y": 16
+  },
+  "ne-resize": {
+   "x": 16,
+   "y": 16
+  },
+  "up-arrow": {
+   "x": 16,
+   "y": 2
+  }
+ }
+}

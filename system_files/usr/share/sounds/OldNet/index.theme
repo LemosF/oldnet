@@ -1,0 +1,7 @@
+[Sound Theme]
+Name=OldNet
+Comment=OldNet OS sound theme
+Directories=stereo
+
+[stereo]
+OutputProfile=stereo

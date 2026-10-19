@@ -1,1 +1,10 @@
 * text=auto eol=lf
+
+# Binary art: never touch line endings
+*.png binary
+*.jpg binary
+*.ogg binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+system_files/usr/share/icons/*-Cursors/cursors/* binary
