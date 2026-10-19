@@ -38,8 +38,8 @@ done < "$work/SHA256SUMS"
 install -m 0644 "$work"/*.ttf "$FONT_DIR/"
 install -m 0644 "$work/OFL.txt" "$LICENSE_DIR/OFL.txt"
 rm -rf "$work"
-fc-cache -f "$FONT_DIR"
-# No pipe into grep -q here: with pipefail, grep exiting early makes fc-list fail on SIGPIPE.
-match=$(fc-match -f '%{family}' 'Chakra Petch')
-[[ "$match" == *"Chakra Petch"* ]] || { echo "Chakra Petch not visible to fontconfig (got: $match)"; exit 1; }
-echo "Chakra Petch: installed"
+# Check the installed files themselves. The fontconfig cache is not a reliable check
+# here: it was flaky across builds and /var/cache is wiped at the end of the build anyway.
+families=$(fc-scan --format '%{family}\n' "$FONT_DIR")
+[[ "$families" == *"Chakra Petch"* ]] || { echo "Chakra Petch files not readable by fontconfig"; exit 1; }
+echo "Chakra Petch: installed ($(ls "$FONT_DIR" | wc -l) files)"
