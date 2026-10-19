@@ -39,5 +39,7 @@ install -m 0644 "$work"/*.ttf "$FONT_DIR/"
 install -m 0644 "$work/OFL.txt" "$LICENSE_DIR/OFL.txt"
 rm -rf "$work"
 fc-cache -f "$FONT_DIR"
-fc-list | grep -q "Chakra Petch" || { echo "Chakra Petch not visible to fontconfig"; exit 1; }
+# No pipe into grep -q here: with pipefail, grep exiting early makes fc-list fail on SIGPIPE.
+match=$(fc-match -f '%{family}' 'Chakra Petch')
+[[ "$match" == *"Chakra Petch"* ]] || { echo "Chakra Petch not visible to fontconfig (got: $match)"; exit 1; }
 echo "Chakra Petch: installed"
