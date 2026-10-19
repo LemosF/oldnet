@@ -21,6 +21,10 @@ jobs:
           mkdir -p diag
           cat > diag/inspect.sh <<'EOF'
           sec() { echo; echo "===== $*"; }
+          sec workaround-unit;     systemctl cat fedora-kinoite-plasmalogin-workaround.service 2>&1; rpm -qf /usr/lib/systemd/system/fedora-kinoite-plasmalogin-workaround.service 2>&1 || true
+          sec workaround-script;   for x in $(systemctl cat fedora-kinoite-plasmalogin-workaround.service 2>/dev/null | sed -n "s/^ExecStart=-\{0,1\}\([^ ]*\).*/\1/p"); do echo "--- $x"; cat "$x" 2>&1; done
+          sec workaround-enabled;  systemctl is-enabled fedora-kinoite-plasmalogin-workaround.service 2>&1 || true
+          sec holo-origin;         rpm -qf /usr/lib/sddm/sddm.conf.d/holo.conf 2>&1 || true
           sec packages;            rpm -q sddm plasma-login-manager sddm-wayland-plasma sddm-kcm qt6-qtvirtualkeyboard qt6-qtdeclarative || true
           sec display-manager;     ls -l /etc/systemd/system/display-manager.service || true
           sec enabled;             systemctl is-enabled plasmalogin.service sddm.service 2>&1 || true
