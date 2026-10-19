@@ -1,14 +1,19 @@
 #!/usr/bin/bash
-# Login screen: the OldNet SDDM theme ships in system_files/ and is selected by
-# /usr/lib/sddm/sddm.conf.d/zz-oldnet.conf. Fail early if something it needs is gone.
+# Login screen. Bazzite desktop images (Fedora KDE) use Plasma Login Manager;
+# only the deck image installs SDDM, which uses the OldNet SDDM theme shipped in
+# system_files/ and selected by /usr/lib/sddm/sddm.conf.d/zz-oldnet.conf.
 set -euo pipefail
 
-command -v sddm >/dev/null || { echo "sddm missing from the base image"; exit 1; }
-test -f /usr/share/sddm/themes/oldnet/Main.qml
-
-# Logged for CI: the deck image enables the on-screen keyboard in SDDM.
-if [ -d /usr/lib64/qt6/qml/QtQuick/VirtualKeyboard ]; then
-  echo "QtVirtualKeyboard: present"
+if command -v sddm >/dev/null; then
+  echo "Login manager: SDDM (OldNet theme)"
+  test -f /usr/share/sddm/themes/oldnet/Main.qml
+  if [ -d /usr/lib64/qt6/qml/QtQuick/VirtualKeyboard ]; then
+    echo "QtVirtualKeyboard: present"
+  else
+    echo "QtVirtualKeyboard: absent (on-screen keyboard disabled in the login theme)"
+  fi
+elif rpm -q plasma-login-manager >/dev/null 2>&1; then
+  echo "Login manager: Plasma Login Manager (OldNet SDDM theme unused)"
 else
-  echo "QtVirtualKeyboard: absent (on-screen keyboard disabled in the login theme)"
+  echo "Login manager: unknown"
 fi
