@@ -28,6 +28,10 @@
       "tooltip": "#1C1C24",
       "complementary": "#08080E",
       "complementaryText": "#ECE9E4",
+      "decoTop": "#22161C",
+      "decoBottom": "#141016",
+      "decoLine": "#FF5468",
+      "frame": "#2A2A33",
       "ansi": ["#1C1C22", "#FF5468", "#3CF0B0", "#E3A83B", "#4D8DFF", "#C77DFF", "#3AD7E8", "#C9C6C0"],
       "ansiBright": ["#4A4A55", "#FF7A8A", "#7AF5C8", "#F0C46A", "#7FAEFF", "#D9A3FF", "#7EF0FF", "#FFFFFF"]
     },
@@ -58,6 +62,10 @@
       "tooltip": "#0B2226",
       "complementary": "#040E10",
       "complementaryText": "#DFF7F9",
+      "decoTop": "#10262B",
+      "decoBottom": "#0C1518",
+      "decoLine": "#3AD7E8",
+      "frame": "#E3A83B",
       "ansi": ["#0B2226", "#FF5468", "#3CF0B0", "#E3A83B", "#3A8FE8", "#B07CFF", "#3AD7E8", "#B8D9DC"],
       "ansiBright": ["#2F4A50", "#FF7A8A", "#7AF5C8", "#F0C46A", "#6FB0FF", "#CBA3FF", "#7EF0FF", "#FFFFFF"]
     },
@@ -88,6 +96,10 @@
       "tooltip": "#FFFFFF",
       "complementary": "#141418",
       "complementaryText": "#F3EFE6",
+      "decoTop": "#FFFFFF",
+      "decoBottom": "#F7F4EE",
+      "decoLine": "#C8283D",
+      "frame": "#C9C2B4",
       "ansi": ["#141418", "#C8283D", "#0A7F63", "#9A6200", "#1F5FBF", "#8A3FA8", "#0B6F80", "#D8D2C4"],
       "ansiBright": ["#6B665D", "#E0485C", "#12A07D", "#B87A10", "#3A78D8", "#A25BC0", "#1690A5", "#FFFFFF"]
     }
