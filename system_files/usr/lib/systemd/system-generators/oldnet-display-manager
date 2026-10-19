@@ -1,0 +1,12 @@
+#!/bin/sh
+# OldNet: after rebasing from an image that used Plasma Login Manager, a locally
+# modified /etc can keep display-manager.service pointing at plasmalogin.service,
+# which no longer exists. In that case use SDDM for this boot. /etc is not changed;
+# generator.early ($2) simply takes priority over it.
+link=/etc/systemd/system/display-manager.service
+sddm=/usr/lib/systemd/system/sddm.service
+
+[ -L "$link" ] || exit 0          # nothing set in /etc: the image default applies
+[ -e "$link" ] && exit 0          # points at a unit that exists: respect it
+[ -e "$sddm" ] || exit 0
+ln -sf "$sddm" "$2/display-manager.service"
