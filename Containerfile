@@ -6,6 +6,7 @@ ARG IMAGE_NAME=oldnet
 ARG IMAGE_VENDOR=oldnet-os
 
 COPY system_files/ /
+COPY widgets/ /usr/share/plasma/plasmoids/
 COPY build_files/ /tmp/build_files/
 
 RUN IMAGE_NAME=${IMAGE_NAME} bash /tmp/build_files/build.sh && \

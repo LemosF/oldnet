@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0 http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
+  <kcfgfile name=""/>
+  <group name="General">
+    <!-- One entry per tab, in desktop order. "none" = no icon / no launcher. -->
+    <entry name="tabIcons" type="StringList">
+      <default>user-desktop,mail-message,dialog-messages,input-gaming,applications-development</default>
+    </entry>
+    <!-- Desktop file id started when an empty tab is clicked (Flatpak ids work). -->
+    <entry name="tabLaunchers" type="StringList">
+      <default>none,org.mozilla.Thunderbird,org.kde.neochat,none,none</default>
+    </entry>
+    <entry name="showWindowCount" type="Bool">
+      <default>true</default>
+    </entry>
+  </group>
+</kcfg>

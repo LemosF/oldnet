@@ -1,0 +1,20 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "OldNet OS"
+            }
+        ],
+        "Category": "Windows and Tasks",
+        "Description": "Tabs for your virtual desktops: Desktop, Mail, Messages and more",
+        "Description[pt_PT]": "Separadores para os ambientes de trabalho virtuais: Desktop, Mail, Messages e mais",
+        "Icon": "virtual-desktops",
+        "Id": "org.oldnet.tabs",
+        "License": "Apache-2.0",
+        "Name": "OldNet Tabs",
+        "Version": "0.1",
+        "Website": "https://github.com/LemosF/oldnet"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}
