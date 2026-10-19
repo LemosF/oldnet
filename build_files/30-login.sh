@@ -20,8 +20,14 @@ for f in Main.qml VirtualKeyboard.qml metadata.desktop theme.conf \
   [ -f "$THEME/$f" ] || fail "theme file missing: $f"
 done
 # Last Current= wins (conf.d in order, /etc after /usr/lib); it must be ours.
-current=$(cat /usr/lib/sddm/sddm.conf.d/*.conf /etc/sddm.conf.d/*.conf /etc/sddm.conf 2>/dev/null \
-          | sed -n 's/^Current=//p' | tail -n1)
+# Only existing files: an empty conf.d leaves the glob unexpanded, and cat failing on it
+# would end the script silently under pipefail.
+current=
+for conf in /usr/lib/sddm/sddm.conf.d/*.conf /etc/sddm.conf.d/*.conf /etc/sddm.conf; do
+  [ -f "$conf" ] || continue
+  value=$(sed -n 's/^Current=//p' "$conf" | tail -n1)
+  [ -z "$value" ] || current=$value
+done
 [ "$current" = oldnet ] || fail "SDDM theme resolves to '${current:-default}', expected oldnet"
 
 # --- Load the theme in the greeter's test mode (no display needed) and fail on QML errors.
