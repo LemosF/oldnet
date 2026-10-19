@@ -24,5 +24,9 @@ Each one carries its own license, and Flathub shows that license before install.
 | OldNet scripts, themes, widgets, apps | Apache-2.0 (this repo) |
 | OldNet artwork, wallpapers, sounds | Apache-2.0 (this repo), see TRADEMARKS.md for the name and logo |
 
-Planned fonts: Chakra Petch and IBM Plex Mono. Both are under the SIL Open Font
-License 1.1. Their license files will ship with them.
+## Fonts
+
+| Font | Source | License |
+|---|---|---|
+| Chakra Petch | google/fonts, pinned commit and SHA-256 checked (`build_files/05-fonts.sh`) | SIL OFL 1.1, `/usr/share/licenses/chakra-petch/OFL.txt` |
+| IBM Plex Mono | Fedora package `ibm-plex-mono-fonts` | SIL OFL 1.1 |
