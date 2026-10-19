@@ -1,6 +1,7 @@
 name: build-oldnet
 on:
-  push: { branches: [main] }
+  # Test branches publish :<branch> tags only; :latest comes from main alone.
+  push: { branches: [main, login-sddm, "test/**"] }
   pull_request:
   schedule:
     - cron: "30 5 * * *"   # follow upstream Bazzite daily
@@ -21,6 +22,17 @@ jobs:
       # ghcr.io requires lowercase repository names (owner is "LemosF")
       - id: reg
         run: echo "registry=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+      # main -> :latest and :<sha>; any other branch -> :<branch> and :<branch>-<short sha>
+      - id: tag
+        run: |
+          if [ "$GITHUB_REF_NAME" = main ]; then
+            echo "main=latest" >> "$GITHUB_OUTPUT"
+            echo "pinned=$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+          else
+            branch=$(tr -c 'a-zA-Z0-9_.\n-' '-' <<<"$GITHUB_REF_NAME")
+            echo "main=$branch" >> "$GITHUB_OUTPUT"
+            echo "pinned=$branch-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          fi
       # Bazzite images are ~10 GB; the default runner disk is too small
       - name: Free disk space
         run: |
@@ -45,8 +57,8 @@ jobs:
             IMAGE_NAME=${{ matrix.image }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: |
-            ${{ steps.reg.outputs.registry }}/${{ matrix.image }}:latest
-            ${{ steps.reg.outputs.registry }}/${{ matrix.image }}:${{ github.sha }}
+            ${{ steps.reg.outputs.registry }}/${{ matrix.image }}:${{ steps.tag.outputs.main }}
+            ${{ steps.reg.outputs.registry }}/${{ matrix.image }}:${{ steps.tag.outputs.pinned }}
       - uses: sigstore/cosign-installer@v3
         if: github.event_name != 'pull_request'
       - name: Sign image
