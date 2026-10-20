@@ -52,17 +52,22 @@ Rectangle {
         asynchronous: true
     }
 
-    // Top bar: name and clock, kept inside the band above the background's accent line (y≈64)
+    // The background has two 150 px bands (accent lines at y=147 and y=930, mirrored).
+    // Their contents are centred vertically in them.
+    readonly property real band: 150 * s
+
+    // Top band: name and clock
     Text {
-        x: 80 * root.s; y: 12 * root.s
+        x: 80 * root.s
+        anchors { verticalCenter: parent.top; verticalCenterOffset: root.band / 2 }
         text: "OLDNET OS"
         color: root.c.text
         font { family: root.uiFont; pixelSize: 34 * root.s; bold: true; letterSpacing: 6 * root.s }
     }
     Text {
         id: clock
-        anchors { right: parent.right; rightMargin: 80 * root.s }
-        y: 16 * root.s
+        anchors { right: parent.right; rightMargin: 80 * root.s
+                  verticalCenter: parent.top; verticalCenterOffset: root.band / 2 }
         color: root.c.a2
         font { family: root.monoFont; pixelSize: 26 * root.s }
         text: Qt.formatTime(new Date(), "hh:mm")
@@ -180,22 +185,56 @@ Rectangle {
                     Accessible.role: Accessible.Graphic
                     Accessible.name: userBox.currentText
 
+                    // SDDM hands out its own dark default face (/usr/share/sddm/faces) when a
+                    // user has no picture; that counts as "no picture" here.
+                    readonly property string iconPath: entry ? String(entry.iconPath) : ""
+                    readonly property bool hasPicture: iconPath !== ""
+                                                       && iconPath.indexOf("/sddm/faces/") < 0
+                                                       && face.status === Image.Ready
+
                     Rectangle { anchors { fill: parent; margins: 8 * root.s } color: root.c.bg }
                     Image {
                         id: face
                         anchors { fill: parent; margins: 8 * root.s }
-                        source: avatar.entry ? avatar.entry.iconPath : ""
+                        source: avatar.iconPath.indexOf("/sddm/faces/") < 0 ? avatar.iconPath : ""
                         sourceSize: Qt.size(width, height)
                         fillMode: Image.PreserveAspectCrop
                         asynchronous: true
-                        visible: status === Image.Ready
+                        visible: avatar.hasPicture
                     }
-                    Text {
-                        anchors.centerIn: parent
-                        visible: face.status !== Image.Ready
-                        text: userBox.currentText ? userBox.currentText.charAt(0).toUpperCase() : "?"
-                        color: root.c.a3
-                        font { family: root.uiFont; pixelSize: 60 * root.s; bold: true }
+                    // No picture: a translucent white silhouette (head and shoulders).
+                    Shape {
+                        id: silhouette
+                        visible: !avatar.hasPicture
+                        anchors { fill: parent; margins: 8 * root.s }
+                        readonly property real w: width
+                        readonly property real h: height
+                        ShapePath {
+                            fillColor: "#59FFFFFF"   // white, ~35% opacity
+                            strokeColor: "transparent"
+                            // head
+                            startX: silhouette.w * 0.5 + silhouette.w * 0.17; startY: silhouette.h * 0.36
+                            PathArc {
+                                x: silhouette.w * 0.5 - silhouette.w * 0.17; y: silhouette.h * 0.36
+                                radiusX: silhouette.w * 0.17; radiusY: silhouette.w * 0.17
+                            }
+                            PathArc {
+                                x: silhouette.w * 0.5 + silhouette.w * 0.17; y: silhouette.h * 0.36
+                                radiusX: silhouette.w * 0.17; radiusY: silhouette.w * 0.17
+                            }
+                        }
+                        ShapePath {
+                            fillColor: "#59FFFFFF"
+                            strokeColor: "transparent"
+                            // shoulders, cut off by the frame's bottom edge
+                            startX: silhouette.w * 0.14; startY: silhouette.h
+                            PathCubic {
+                                x: silhouette.w * 0.86; y: silhouette.h
+                                control1X: silhouette.w * 0.14; control1Y: silhouette.h * 0.56
+                                control2X: silhouette.w * 0.86; control2Y: silhouette.h * 0.56
+                            }
+                            PathLine { x: silhouette.w * 0.14; y: silhouette.h }
+                        }
                     }
                     Shape {
                         anchors.fill: parent
@@ -412,9 +451,10 @@ Rectangle {
         }
     }
 
-    // Bottom right: power actions the system allows
+    // Bottom band, right: power actions the system allows
     Row {
-        anchors { right: parent.right; rightMargin: 80 * root.s; bottom: parent.bottom; bottomMargin: 20 * root.s }
+        anchors { right: parent.right; rightMargin: 80 * root.s
+                  verticalCenter: parent.bottom; verticalCenterOffset: -root.band / 2 }
         spacing: 24 * root.s
         Repeater {
             model: [
@@ -443,7 +483,7 @@ Rectangle {
     }
     Text {
         x: 80 * root.s
-        anchors { bottom: parent.bottom; bottomMargin: 40 * root.s }
+        anchors { verticalCenter: parent.bottom; verticalCenterOffset: -root.band / 2 }
         text: "BASED ON BAZZITE"
         color: root.c.dim
         font { family: root.monoFont; pixelSize: 16 * root.s; letterSpacing: 3 * root.s }
