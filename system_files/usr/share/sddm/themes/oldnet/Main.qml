@@ -325,7 +325,8 @@ Rectangle {
                     id: errorRow
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: 10 * root.s
-                    visible: root.loginError
+                    // Hidden during the two bips; the bzzt sets ghost/shown and reveals it.
+                    visible: root.loginError && (alert.shown > 0 || alert.ghost > 0)
 
                     Rectangle {
                         width: errTag.implicitWidth + 12 * root.s
@@ -415,39 +416,58 @@ Rectangle {
         function onLoginFailed() {
             password.text = ""
             root.loginError = true
+            if (errorSound.item) errorSound.item.play()
             failAnim.restart()
             password.forceActiveFocus()
         }
     }
 
-    // Login failed: the panel jolts, its outline flashes, a scan line sweeps down and the
-    // message types itself in with a short chromatic glitch. About 0.6 s in total.
-    ParallelAnimation {
+    // Login-failed sound; empty when QtMultimedia is missing.
+    Loader { id: errorSound; source: "ErrorSound.qml" }
+
+    // Login failed, timed to the sound (bip 0.00 s, bip 0.12 s, bzzt 0.26-0.45 s):
+    // the outline pulses softly on each bip, then on the bzzt the panel jolts, flashes,
+    // a scan line sweeps down and the message types itself in with a short glitch.
+    readonly property int bzztAt: 260
+    SequentialAnimation {
         id: failAnim
-        SequentialAnimation {
-            NumberAnimation { target: shake; property: "x"; to: -14 * root.s; duration: 40 }
-            NumberAnimation { target: shake; property: "x"; to: 12 * root.s; duration: 50 }
-            NumberAnimation { target: shake; property: "x"; to: -8 * root.s; duration: 50 }
-            NumberAnimation { target: shake; property: "x"; to: 5 * root.s; duration: 50 }
-            NumberAnimation { target: shake; property: "x"; to: 0; duration: 60 }
-        }
-        SequentialAnimation {
-            NumberAnimation { target: flash; property: "opacity"; to: 1; duration: 50 }
-            NumberAnimation { target: flash; property: "opacity"; to: 0.25; duration: 70 }
-            NumberAnimation { target: flash; property: "opacity"; to: 1; duration: 50 }
-            NumberAnimation { target: flash; property: "opacity"; to: 0; duration: 450; easing.type: Easing.OutQuad }
-        }
-        SequentialAnimation {
-            PropertyAction { target: scan; property: "opacity"; value: 0.9 }
-            NumberAnimation { target: scan; property: "y"; from: 0; to: panel.height; duration: 320; easing.type: Easing.InOutQuad }
-            PropertyAction { target: scan; property: "opacity"; value: 0 }
-        }
-        SequentialAnimation {
-            PropertyAction { target: alert; property: "ghost"; value: 1 }
-            NumberAnimation { target: alert; property: "shown"; from: 0; to: alert.errorText.length; duration: 300 }
-            NumberAnimation { target: alert; property: "ghost"; to: 0.35; duration: 60 }
-            NumberAnimation { target: alert; property: "ghost"; to: 0.8; duration: 60 }
-            NumberAnimation { target: alert; property: "ghost"; to: 0; duration: 220 }
+        // Start clean (a previous error may still be on screen); ERR appears on the bzzt.
+        PropertyAction { target: alert; property: "shown"; value: 0 }
+        PropertyAction { target: alert; property: "ghost"; value: 0 }
+        // Two soft pulses, one per bip.
+        NumberAnimation { target: flash; property: "opacity"; to: 0.45; duration: 25 }
+        NumberAnimation { target: flash; property: "opacity"; to: 0; duration: 70 }
+        PauseAnimation { duration: 25 }
+        NumberAnimation { target: flash; property: "opacity"; to: 0.45; duration: 25 }
+        NumberAnimation { target: flash; property: "opacity"; to: 0; duration: 70 }
+        PauseAnimation { duration: root.bzztAt - 215 }
+        // The bzzt: everything at once. The jolt (~0.25 s) spans the bzzt (0.26-0.45 s).
+        ParallelAnimation {
+            SequentialAnimation {
+                NumberAnimation { target: shake; property: "x"; to: -14 * root.s; duration: 40 }
+                NumberAnimation { target: shake; property: "x"; to: 12 * root.s; duration: 50 }
+                NumberAnimation { target: shake; property: "x"; to: -8 * root.s; duration: 50 }
+                NumberAnimation { target: shake; property: "x"; to: 5 * root.s; duration: 50 }
+                NumberAnimation { target: shake; property: "x"; to: 0; duration: 60 }
+            }
+            SequentialAnimation {
+                NumberAnimation { target: flash; property: "opacity"; to: 1; duration: 50 }
+                NumberAnimation { target: flash; property: "opacity"; to: 0.25; duration: 70 }
+                NumberAnimation { target: flash; property: "opacity"; to: 1; duration: 50 }
+                NumberAnimation { target: flash; property: "opacity"; to: 0; duration: 450; easing.type: Easing.OutQuad }
+            }
+            SequentialAnimation {
+                PropertyAction { target: scan; property: "opacity"; value: 0.9 }
+                NumberAnimation { target: scan; property: "y"; from: 0; to: panel.height; duration: 320; easing.type: Easing.InOutQuad }
+                PropertyAction { target: scan; property: "opacity"; value: 0 }
+            }
+            SequentialAnimation {
+                PropertyAction { target: alert; property: "ghost"; value: 1 }
+                NumberAnimation { target: alert; property: "shown"; from: 0; to: alert.errorText.length; duration: 300 }
+                NumberAnimation { target: alert; property: "ghost"; to: 0.35; duration: 60 }
+                NumberAnimation { target: alert; property: "ghost"; to: 0.8; duration: 60 }
+                NumberAnimation { target: alert; property: "ghost"; to: 0; duration: 220 }
+            }
         }
     }
 
