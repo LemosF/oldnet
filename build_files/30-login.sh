@@ -13,6 +13,14 @@ dm=$(readlink -f /etc/systemd/system/display-manager.service || true)
 [ "$dm" = /usr/lib/systemd/system/sddm.service ] || fail "display-manager.service -> '${dm:-none}', expected sddm.service"
 [ "$(systemctl is-enabled plasmalogin.service 2>/dev/null || true)" != enabled ] || fail "plasmalogin.service is enabled"
 
+# --- Desktop images: no Steam Game Mode autologin inherited from Bazzite's deck setup
+if [[ "${IMAGE_NAME:-}" != *deck* ]]; then
+  [ ! -f /usr/lib/sddm/sddm.conf.d/holo.conf ] || fail "holo.conf (Game Mode relogin) present on a desktop image"
+  [ "$(systemctl is-enabled bazzite-autologin.service 2>/dev/null || true)" != enabled ] \
+    || fail "bazzite-autologin.service is enabled on a desktop image"
+  [ -f /usr/lib/tmpfiles.d/oldnet-desktop-autologin.conf ] || fail "autologin cleanup (tmpfiles) missing"
+fi
+
 # --- Theme files present and selected
 for f in Main.qml VirtualKeyboard.qml metadata.desktop theme.conf \
          backgrounds/background-a-3840x2160.png backgrounds/background-b-3840x2160.png \
