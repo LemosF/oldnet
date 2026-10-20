@@ -1,7 +1,8 @@
 name: build-oldnet
 on:
-  # Test branches publish :<branch> tags only; :latest comes from main alone.
-  push: { branches: [main, login-sddm, "test/**"] }
+  # Work happens on dev (published as :dev); main gets merges once tested and is the
+  # only branch that publishes :latest. test/** is for throwaway experiments.
+  push: { branches: [main, dev, "test/**"] }
   pull_request:
   schedule:
     - cron: "30 5 * * *"   # follow upstream Bazzite daily
