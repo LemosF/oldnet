@@ -15,6 +15,11 @@ sed -i \
 grep -q '^ID_LIKE=' "$OSR" || echo 'ID_LIKE="fedora"' >> "$OSR"
 # Fallback hostname for new installs; the login screen greets with the hostname.
 echo 'DEFAULT_HOSTNAME="oldnet"' >> "$OSR"
+# Our own version, e.g. "2026.10.20 (based on Bazzite 44)". VERSION_ID stays Fedora's:
+# tools rely on it. "About this System" shows VERSION (UseOSReleaseVersion in 10-theme.sh).
+base_version=$(sed -n 's/^VERSION_ID=//p' "$OSR" | tr -d '"')
+sed -i '/^VERSION=/d' "$OSR"
+echo "VERSION=\"$(date -u +%Y.%m.%d) (based on Bazzite ${base_version})\"" >> "$OSR"
 echo "VARIANT_ID=${IMAGE_NAME}" >> "$OSR"
 
 # --- Numbered steps (10-theme.sh, 20-tabs.sh, ...) in order ---

@@ -40,3 +40,6 @@ kwriteconfig6 --file /etc/xdg/kcm-about-distrorc --group General --key Name "Old
 kwriteconfig6 --file /etc/xdg/kcm-about-distrorc --group General --key LogoPath /usr/share/icons/hicolor/scalable/apps/oldnet.svg
 kwriteconfig6 --file /etc/xdg/kcm-about-distrorc --group General --key Website https://github.com/LemosF/oldnet
 kwriteconfig6 --file /etc/xdg/kcm-about-distrorc --group General --key Variant "$variant"
+# Show os-release VERSION ("2026.10.20 (based on Bazzite 44)", set in build.sh) instead of
+# VERSION_ID, which is Fedora's release number.
+kwriteconfig6 --file /etc/xdg/kcm-about-distrorc --group General --key UseOSReleaseVersion true
