@@ -1,0 +1,95 @@
+#!/usr/bin/bash
+# oldnet-tab: backend of OldNet Tabs. Each tab is a KDE activity named after the tab.
+#
+#   oldnet-tab ensure            create the tab activities that are missing
+#   oldnet-tab switch <N|name>   switch to a tab (1-based number or name), creating it
+#   oldnet-tab panel  <name>     show the taskbar only on tabs that should have one
+#
+# Used by the OldNet Tabs widget and by the Meta+1..5 shortcuts. Talks to the activity
+# manager and plasmashell over the session bus, so it works for new and existing users.
+set -euo pipefail
+
+TABS=(Desktop Mail Messages Games Code)
+NO_TASKBAR=" Mail Messages "                 # these tabs have no taskbar
+WALLPAPER="file:///usr/share/wallpapers/OldNet-BlissNeon/"
+DARK="10,10,12"                              # plain background where an app fills the tab
+
+am() {
+  busctl --user --json=short call org.kde.ActivityManager /ActivityManager/Activities \
+    org.kde.ActivityManager.Activities "$@"
+}
+shell_js() {
+  busctl --user call org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell evaluateScript s "$1" >/dev/null
+}
+
+activity_id() {   # name -> id (empty when missing)
+  local id
+  for id in $(am ListActivities | jq -r '.data[0][]'); do
+    if [ "$(am ActivityName s "$id" | jq -r '.data[0]')" = "$1" ]; then
+      echo "$id"
+      return
+    fi
+  done
+}
+
+set_background() {   # activity id, tab name
+  local js
+  if [[ "$NO_TASKBAR" == *" $2 "* ]]; then
+    js="desktopsForActivity('$1').forEach(function (d) {
+          d.wallpaperPlugin = 'org.kde.color';
+          d.currentConfigGroup = ['Wallpaper', 'org.kde.color', 'General'];
+          d.writeConfig('Color', '$DARK'); });"
+  else
+    js="desktopsForActivity('$1').forEach(function (d) {
+          d.wallpaperPlugin = 'org.kde.image';
+          d.currentConfigGroup = ['Wallpaper', 'org.kde.image', 'General'];
+          d.writeConfig('Image', '$WALLPAPER'); });"
+  fi
+  shell_js "$js" || true
+}
+
+ensure_tab() {   # name -> id, creating the activity if needed
+  local name=$1 id
+  id=$(activity_id "$name")
+  if [ -z "$id" ] && [ "$name" = Desktop ]; then
+    # The first activity of every Plasma user ("Default") becomes the Desktop tab.
+    id=$(am CurrentActivity | jq -r '.data[0]')
+    am SetActivityName s "$id" s Desktop >/dev/null
+  elif [ -z "$id" ]; then
+    id=$(am AddActivity s "$name" | jq -r '.data[0]')
+    sleep 0.5                       # let plasmashell create the activity's desktop
+    set_background "$id" "$name"
+  fi
+  echo "$id"
+}
+
+tab_name() {   # 1-based number or name -> name
+  if [[ "$1" =~ ^[0-9]+$ ]]; then
+    echo "${TABS[$(( $1 - 1 ))]:-}"
+  else
+    echo "$1"
+  fi
+}
+
+panel() {
+  local hiding=none
+  [[ "$NO_TASKBAR" == *" $1 "* ]] && hiding=autohide
+  shell_js "panels().forEach(function (p) {
+              if (p.location == 'bottom') p.hiding = '$hiding'; });" || true
+}
+
+case "${1:-}" in
+  ensure)
+    for t in "${TABS[@]}"; do ensure_tab "$t" >/dev/null; done ;;
+  switch)
+    name=$(tab_name "${2:?tab number or name}")
+    [ -n "$name" ] || exit 1
+    id=$(ensure_tab "$name")
+    am SetCurrentActivity s "$id" >/dev/null
+    panel "$name" ;;
+  panel)
+    panel "${2:?tab name}" ;;
+  *)
+    sed -n '2,8s/^# \{0,1\}//p' "$0" >&2
+    exit 2 ;;
+esac
