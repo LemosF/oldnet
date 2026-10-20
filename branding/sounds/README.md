@@ -42,3 +42,12 @@ chosen variant:
 | oldnet-jack-in | b |
 | oldnet-quickhack | b |
 | trash-empty | a |
+
+## Login screen sound
+
+`futuristic-errors/synth_futuristic.py` (also uses `synth.py`) makes the
+"lockerr" sound: bip (0.00 s), bip (0.12 s), bzzt (0.26–0.45 s). The SDDM theme
+plays it when a login fails, from
+`system_files/usr/share/sddm/themes/oldnet/assets/login-failed.wav`. It is a WAV
+because Qt's SoundEffect only plays WAV. The theme's animation is timed to it: soft
+pulses on the bips, then the panel jolt on the bzzt (`bzztAt` in `Main.qml`).
