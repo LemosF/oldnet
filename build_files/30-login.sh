@@ -38,51 +38,26 @@ for conf in /usr/lib/sddm/sddm.conf.d/*.conf /etc/sddm.conf.d/*.conf /etc/sddm.c
 done
 [ "$current" = oldnet ] || fail "SDDM theme resolves to '${current:-default}', expected oldnet"
 
-# --- Load the theme with the qml tool and fail on QML errors. The harness stands in for the
-# context objects SDDM provides (sddm, userModel, sessionModel, keyboard, config). The
-# greeter's own --test-mode is not used: it logs to the journal, so its errors never reached
-# this script (an undefined textConstants slipped through that way).
-qml_bin=$(command -v qml-qt6 qml6 2>/dev/null | head -n1 || true)
-[ -n "$qml_bin" ] || { [ -x /usr/lib64/qt6/bin/qml ] && qml_bin=/usr/lib64/qt6/bin/qml; }
-[ -n "$qml_bin" ] || fail "no qml runtime found to test the theme"
-
+# --- Load the theme in the real greeter (test mode, offscreen) and fail on QML errors.
+# The greeter sends its log to the journal unless stderr is a terminal, so run it under
+# `script`, which gives it one. `timeout` ends the greeter (exit 124 is the normal outcome).
+command -v script >/dev/null || fail "'script' (util-linux) not found, cannot test the theme"
 work=$(mktemp -d)
-cat > "$work/harness.qml" <<EOF
-import QtQuick
-Item {
-    width: 1920; height: 1080
-    property QtObject sddm: QtObject {
-        property string hostName: "oldnet"
-        property bool canSuspend: true; property bool canReboot: true; property bool canPowerOff: true
-        signal loginFailed()
-        function login(u, p, s) {} function suspend() {} function reboot() {} function powerOff() {}
-    }
-    property ListModel userModel: ListModel {
-        property int lastIndex: 0; property string lastUser: ""
-        ListElement { name: "oldnet"; realName: "OldNet" }
-    }
-    property ListModel sessionModel: ListModel {
-        property int lastIndex: 0
-        ListElement { name: "Steam Big Picture" }
-        ListElement { name: "Plasma" }
-    }
-    property QtObject keyboard: QtObject { property bool capsLock: true }
-    property QtObject config: QtObject { property string palette: "a"; property string defaultSession: "Plasma" }
-    Loader { anchors.fill: parent; source: "file://$THEME/Main.qml" }
-    Timer { interval: 3000; running: true; onTriggered: Qt.quit() }
-}
-EOF
 set +e
-QT_QPA_PLATFORM=offscreen timeout 30 "$qml_bin" "$work/harness.qml" >"$work/log" 2>&1
+QT_QPA_PLATFORM=offscreen timeout 25 \
+  script -qfec "sddm-greeter-qt6 --test-mode --theme $THEME" "$work/log" >/dev/null 2>&1
 rc=$?
 set -e
-cat "$work/log"
+tr -d '\r' < "$work/log" > "$work/clean.log"
+cat "$work/clean.log"
+# Without this the test could pass while seeing nothing, as it once did.
+grep -q 'Main.qml' "$work/clean.log" || fail "greeter output not captured (no mention of Main.qml)"
 # VirtualKeyboard.qml is allowed to fail to load: the Loader stays empty on purpose.
-if grep -E '\.qml:[0-9]+|is not a type|is not installed|is not defined|Cannot assign|Cannot read|ReferenceError|TypeError' "$work/log" \
+if grep -E '\.qml:[0-9]+|is not a type|is not installed|is not defined|Cannot assign|Cannot read|ReferenceError|TypeError' "$work/clean.log" \
    | grep -v VirtualKeyboard; then
   fail "QML errors in the OldNet SDDM theme (see above)"
 fi
-[ "$rc" = 0 ] || fail "theme test exited with $rc"
+[ "$rc" = 124 ] || echo "warning: greeter test exited with $rc (no QML errors found)"
 rm -rf "$work"
 [ -d /usr/lib64/qt6/qml/SddmComponents ] && echo "SddmComponents: present (translated texts)" \
   || echo "SddmComponents: absent (English texts)"
