@@ -34,6 +34,10 @@ if systemctl cat bazzite-autologin.service >/dev/null 2>&1; then
 fi
 rm -f /usr/lib/sddm/sddm.conf.d/holo.conf
 
+# The Steam sessions stay available, but a new desktop system starts on Plasma
+# (they sort first alphabetically, so SDDM would otherwise preselect Steam).
+echo "defaultSession=Plasma" >> /usr/share/sddm/themes/oldnet/theme.conf
+
 cat > /usr/lib/systemd/system-preset/11-oldnet-desktop.preset <<'EOF'
 # Desktop images only (written by build_files/25-sddm.sh): no Steam Game Mode autologin.
 disable bazzite-autologin.service

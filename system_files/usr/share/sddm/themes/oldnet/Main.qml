@@ -1,5 +1,5 @@
 // OldNet SDDM theme (Qt 6 / SDDM 0.21). Context objects: sddm, userModel, sessionModel,
-// keyboard, config, textConstants. Laid out for 1920x1080 and scaled to the screen.
+// keyboard, config. Laid out for 1920x1080 and scaled to the screen.
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -20,6 +20,27 @@ Rectangle {
     readonly property string uiFont: "Chakra Petch"
     readonly property string monoFont: "IBM Plex Mono"
 
+    // SDDM's translated strings live in SddmComponents' TextConstants, which a theme has to
+    // create itself (it is not a context object). Created dynamically so a missing module
+    // only drops translations; English fallbacks keep every label filled.
+    readonly property var sddmText: {
+        try {
+            return Qt.createQmlObject("import SddmComponents 2.0; TextConstants {}", root, "TextConstants")
+        } catch (e) {
+            console.log("OldNet theme: SddmComponents unavailable, using English texts")
+            return null
+        }
+    }
+    readonly property var fallbackText: ({
+        welcomeText: "Welcome to %1", promptSelectUser: "Select your user and enter password",
+        userName: "User name", password: "Password", session: "Session",
+        capslockWarning: "Caps Lock is on", login: "Log in", loginFailed: "Login failed",
+        suspend: "Suspend", reboot: "Restart", shutdown: "Shut down"
+    })
+    function txt(key) {
+        return (sddmText && sddmText[key]) ? sddmText[key] : fallbackText[key]
+    }
+
     width: 1920
     height: 1080
     color: c.bg
@@ -31,9 +52,9 @@ Rectangle {
         asynchronous: true
     }
 
-    // Top bar: name and clock
+    // Top bar: name and clock, kept inside the band above the background's accent line (y≈64)
     Text {
-        x: 80 * root.s; y: 36 * root.s
+        x: 80 * root.s; y: 12 * root.s
         text: "OLDNET OS"
         color: root.c.text
         font { family: root.uiFont; pixelSize: 34 * root.s; bold: true; letterSpacing: 6 * root.s }
@@ -41,7 +62,7 @@ Rectangle {
     Text {
         id: clock
         anchors { right: parent.right; rightMargin: 80 * root.s }
-        y: 40 * root.s
+        y: 16 * root.s
         color: root.c.a2
         font { family: root.monoFont; pixelSize: 26 * root.s }
         text: Qt.formatTime(new Date(), "hh:mm")
@@ -58,14 +79,14 @@ Rectangle {
         spacing: 14 * root.s
         Text {
             width: parent.width
-            text: textConstants.welcomeText.arg(sddm.hostName)
+            text: root.txt("welcomeText").arg(sddm.hostName)
             color: root.c.text
             elide: Text.ElideRight
             font { family: root.uiFont; pixelSize: 56 * root.s; bold: true }
         }
         Text {
             width: parent.width
-            text: textConstants.promptSelectUser.toUpperCase()
+            text: root.txt("promptSelectUser").toUpperCase()
             color: root.c.dim
             wrapMode: Text.Wrap
             font { family: root.monoFont; pixelSize: 20 * root.s; letterSpacing: 3 * root.s }
@@ -112,13 +133,13 @@ Rectangle {
                 textRole: "name"
                 currentIndex: userModel.lastIndex
                 font { family: root.uiFont; pixelSize: 24 * root.s }
-                Accessible.name: textConstants.userName
+                Accessible.name: root.txt("userName")
             }
             TextField {
                 id: password
                 Layout.fillWidth: true
                 echoMode: TextInput.Password
-                placeholderText: textConstants.password
+                placeholderText: root.txt("password")
                 placeholderTextColor: root.c.dim
                 color: root.c.a3
                 selectionColor: root.c.a3
@@ -141,7 +162,15 @@ Rectangle {
                 textRole: "name"
                 currentIndex: sessionModel.lastIndex
                 font { family: root.monoFont; pixelSize: 16 * root.s }
-                Accessible.name: textConstants.session
+                Accessible.name: root.txt("session")
+                // theme.conf defaultSession (set on desktop images): pick it until someone has
+                // logged in once; after that SDDM's remembered session is respected.
+                Component.onCompleted: {
+                    if (config.defaultSession && !userModel.lastUser) {
+                        const i = find(config.defaultSession, Qt.MatchStartsWith)
+                        if (i >= 0) currentIndex = i
+                    }
+                }
             }
             Text {
                 id: message
@@ -149,14 +178,14 @@ Rectangle {
                 wrapMode: Text.Wrap
                 color: root.c.a1
                 font { family: root.monoFont; pixelSize: 16 * root.s }
-                text: keyboard.capsLock ? textConstants.capslockWarning : ""
+                text: keyboard.capsLock ? root.txt("capslockWarning") : ""
             }
             Item { Layout.fillHeight: true }
             Button {
                 id: loginButton
                 Layout.preferredWidth: 260 * root.s
                 Layout.preferredHeight: 56 * root.s
-                text: textConstants.login.toUpperCase()
+                text: root.txt("login").toUpperCase()
                 font { family: root.uiFont; pixelSize: 24 * root.s; bold: true }
                 onClicked: root.doLogin()
                 contentItem: Text {
@@ -179,7 +208,7 @@ Rectangle {
     Connections {
         target: sddm
         function onLoginFailed() {
-            message.text = textConstants.loginFailed
+            message.text = root.txt("loginFailed")
             password.text = ""
             password.forceActiveFocus()
         }
@@ -191,9 +220,9 @@ Rectangle {
         spacing: 24 * root.s
         Repeater {
             model: [
-                { k: "suspend",  label: textConstants.suspend,  allowed: sddm.canSuspend },
-                { k: "restart",  label: textConstants.reboot,   allowed: sddm.canReboot },
-                { k: "shutdown", label: textConstants.shutdown, allowed: sddm.canPowerOff }
+                { k: "suspend",  label: root.txt("suspend"),  allowed: sddm.canSuspend },
+                { k: "restart",  label: root.txt("reboot"),   allowed: sddm.canReboot },
+                { k: "shutdown", label: root.txt("shutdown"), allowed: sddm.canPowerOff }
             ]
             delegate: AbstractButton {
                 required property var modelData
