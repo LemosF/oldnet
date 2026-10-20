@@ -39,19 +39,21 @@ done
 [ "$current" = oldnet ] || fail "SDDM theme resolves to '${current:-default}', expected oldnet"
 
 # --- Load the theme in the real greeter (test mode, offscreen) and fail on QML errors.
-# The greeter sends its log to the journal unless stderr is a terminal, so run it under
-# `script`, which gives it one. `timeout` ends the greeter (exit 124 is the normal outcome).
-command -v script >/dev/null || fail "'script' (util-linux) not found, cannot test the theme"
+# The greeter sends its log to the journal unless stderr is a terminal, so give it a pseudo
+# terminal with Python's pty module (util-linux `script` is not in the image; python3 is).
+# `timeout` ends the greeter (exit 124 is the normal outcome).
+command -v python3 >/dev/null || fail "python3 not found, cannot test the theme"
 work=$(mktemp -d)
 set +e
 QT_QPA_PLATFORM=offscreen timeout 25 \
-  script -qfec "sddm-greeter-qt6 --test-mode --theme $THEME" "$work/log" >/dev/null 2>&1
+  python3 -c 'import pty, sys; pty.spawn(sys.argv[1:])' \
+  sddm-greeter-qt6 --test-mode --theme "$THEME" >"$work/log" 2>&1 </dev/null
 rc=$?
 set -e
 tr -d '\r' < "$work/log" > "$work/clean.log"
 cat "$work/clean.log"
 # Without this the test could pass while seeing nothing, as it once did.
-grep -q 'Main.qml' "$work/clean.log" || fail "greeter output not captured (no mention of Main.qml)"
+grep -qE 'GREETER|Main\.qml' "$work/clean.log" || fail "greeter output not captured (no greeter log lines)"
 # VirtualKeyboard.qml is allowed to fail to load: the Loader stays empty on purpose.
 if grep -E '\.qml:[0-9]+|is not a type|is not installed|is not defined|Cannot assign|Cannot read|ReferenceError|TypeError' "$work/clean.log" \
    | grep -v VirtualKeyboard; then
