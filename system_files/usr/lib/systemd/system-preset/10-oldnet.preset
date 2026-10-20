@@ -1,0 +1,5 @@
+# OldNet uses SDDM on every image. Lower number than Fedora's presets, so it wins
+# when presets are applied on first boot.
+enable sddm.service
+disable plasmalogin.service
+disable fedora-kinoite-plasmalogin-workaround.service

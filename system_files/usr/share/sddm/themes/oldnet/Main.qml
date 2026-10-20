@@ -1,5 +1,5 @@
 // OldNet SDDM theme (Qt 6 / SDDM 0.21). Context objects: sddm, userModel, sessionModel,
-// keyboard, config, textConstants. Laid out for 1920x1080 and scaled to the screen.
+// keyboard, config. Laid out for 1920x1080 and scaled to the screen.
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -20,6 +20,27 @@ Rectangle {
     readonly property string uiFont: "Chakra Petch"
     readonly property string monoFont: "IBM Plex Mono"
 
+    // SDDM's translated strings live in SddmComponents' TextConstants, which a theme has to
+    // create itself (it is not a context object). Created dynamically so a missing module
+    // only drops translations; English fallbacks keep every label filled.
+    readonly property var sddmText: {
+        try {
+            return Qt.createQmlObject("import SddmComponents 2.0; TextConstants {}", root, "TextConstants")
+        } catch (e) {
+            console.log("OldNet theme: SddmComponents unavailable, using English texts")
+            return null
+        }
+    }
+    readonly property var fallbackText: ({
+        welcomeText: "Welcome to %1", promptSelectUser: "Select your user and enter password",
+        userName: "User name", password: "Password", session: "Session",
+        capslockWarning: "Caps Lock is on", login: "Log in", loginFailed: "Login failed",
+        suspend: "Suspend", reboot: "Restart", shutdown: "Shut down"
+    })
+    function txt(key) {
+        return (sddmText && sddmText[key]) ? sddmText[key] : fallbackText[key]
+    }
+
     width: 1920
     height: 1080
     color: c.bg
@@ -31,17 +52,22 @@ Rectangle {
         asynchronous: true
     }
 
-    // Top bar: name and clock
+    // The background has two 150 px bands (accent lines at y=147 and y=930, mirrored).
+    // Their contents are centred vertically in them.
+    readonly property real band: 150 * s
+
+    // Top band: name and clock
     Text {
-        x: 80 * root.s; y: 36 * root.s
+        x: 80 * root.s
+        anchors { verticalCenter: parent.top; verticalCenterOffset: root.band / 2 }
         text: "OLDNET OS"
         color: root.c.text
         font { family: root.uiFont; pixelSize: 34 * root.s; bold: true; letterSpacing: 6 * root.s }
     }
     Text {
         id: clock
-        anchors { right: parent.right; rightMargin: 80 * root.s }
-        y: 40 * root.s
+        anchors { right: parent.right; rightMargin: 80 * root.s
+                  verticalCenter: parent.top; verticalCenterOffset: root.band / 2 }
         color: root.c.a2
         font { family: root.monoFont; pixelSize: 26 * root.s }
         text: Qt.formatTime(new Date(), "hh:mm")
@@ -58,14 +84,14 @@ Rectangle {
         spacing: 14 * root.s
         Text {
             width: parent.width
-            text: textConstants.welcomeText.arg(sddm.hostName)
+            text: root.txt("welcomeText").arg(sddm.hostName)
             color: root.c.text
             elide: Text.ElideRight
             font { family: root.uiFont; pixelSize: 56 * root.s; bold: true }
         }
         Text {
             width: parent.width
-            text: textConstants.promptSelectUser.toUpperCase()
+            text: root.txt("promptSelectUser").toUpperCase()
             color: root.c.dim
             wrapMode: Text.Wrap
             font { family: root.monoFont; pixelSize: 20 * root.s; letterSpacing: 3 * root.s }
@@ -77,9 +103,11 @@ Rectangle {
     Item {
         id: panel
         readonly property real cut: 40 * root.s
+        readonly property real pad: 36 * root.s
         anchors { right: parent.right; rightMargin: 180 * root.s; verticalCenter: parent.verticalCenter }
-        width: 600 * root.s
-        height: 480 * root.s
+        width: 680 * root.s
+        height: form.implicitHeight + 2 * pad   // fits its content: no empty band in the middle
+        transform: Translate { id: shake }       // moved by the login-failed animation
 
         Shape {
             anchors.fill: parent
@@ -101,62 +129,252 @@ Rectangle {
             }
         }
 
-        ColumnLayout {
-            anchors { fill: parent; margins: 48 * root.s }
-            spacing: 16 * root.s
-
-            HudCombo {
-                id: userBox
-                Layout.fillWidth: true
-                model: userModel
-                textRole: "name"
-                currentIndex: userModel.lastIndex
-                font { family: root.uiFont; pixelSize: 24 * root.s }
-                Accessible.name: textConstants.userName
+        // Login-failed flash: the whole chamfered outline lights up in the accent colour.
+        Shape {
+            id: flash
+            anchors.fill: parent
+            opacity: 0
+            ShapePath {
+                fillColor: "#10" + root.c.a1.substring(1)   // #AARRGGBB: accent at ~6% alpha
+                strokeColor: root.c.a1; strokeWidth: 3 * root.s
+                startX: 0; startY: 0
+                PathLine { x: panel.width - panel.cut; y: 0 }
+                PathLine { x: panel.width; y: panel.cut }
+                PathLine { x: panel.width; y: panel.height }
+                PathLine { x: panel.cut; y: panel.height }
+                PathLine { x: 0; y: panel.height - panel.cut }
+                PathLine { x: 0; y: 0 }
             }
-            TextField {
-                id: password
-                Layout.fillWidth: true
-                echoMode: TextInput.Password
-                placeholderText: textConstants.password
-                placeholderTextColor: root.c.dim
-                color: root.c.a3
-                selectionColor: root.c.a3
-                selectedTextColor: root.c.bg
-                font { family: root.monoFont; pixelSize: 20 * root.s }
-                padding: 12 * root.s
-                focus: true
-                Keys.onReturnPressed: root.doLogin()
-                Keys.onEnterPressed: root.doLogin()
-                background: Rectangle {
-                    color: root.c.bg
-                    border.color: password.activeFocus ? root.c.a3 : root.c.edge
-                    border.width: 2
+        }
+        // ...and a scan line sweeps down the panel.
+        Rectangle {
+            id: scan
+            x: 0; width: panel.width; height: 2 * root.s
+            color: root.c.a1
+            opacity: 0
+        }
+
+        // One hidden item per user, so the picture can follow the selected user's icon role.
+        Repeater {
+            id: userIcons
+            model: userModel
+            delegate: Item {
+                required property string icon
+                readonly property string iconPath: icon
+            }
+        }
+
+        ColumnLayout {
+            id: form
+            anchors { left: parent.left; right: parent.right; top: parent.top; margins: panel.pad }
+            spacing: 14 * root.s
+
+            RowLayout {
+                spacing: 20 * root.s
+
+                // XP-style user picture. SDDM finds the image set in System Settings > Users
+                // (AccountsService); without one, the user's initial is shown instead.
+                Item {
+                    id: avatar
+                    readonly property real chamfer: 12 * root.s
+                    readonly property var entry: userIcons.count > userBox.currentIndex
+                                                 ? userIcons.itemAt(userBox.currentIndex) : null
+                    Layout.preferredWidth: 132 * root.s
+                    Layout.preferredHeight: 132 * root.s
+                    Layout.alignment: Qt.AlignTop
+                    Accessible.role: Accessible.Graphic
+                    Accessible.name: userBox.currentText
+
+                    // SDDM hands out its own dark default face (/usr/share/sddm/faces) when a
+                    // user has no picture; that counts as "no picture" here.
+                    readonly property string iconPath: entry ? String(entry.iconPath) : ""
+                    readonly property bool hasPicture: iconPath !== ""
+                                                       && iconPath.indexOf("/sddm/faces/") < 0
+                                                       && face.status === Image.Ready
+
+                    Rectangle { anchors { fill: parent; margins: 8 * root.s } color: root.c.bg }
+                    Image {
+                        id: face
+                        anchors { fill: parent; margins: 8 * root.s }
+                        source: avatar.iconPath.indexOf("/sddm/faces/") < 0 ? avatar.iconPath : ""
+                        sourceSize: Qt.size(width, height)
+                        fillMode: Image.PreserveAspectCrop
+                        asynchronous: true
+                        visible: avatar.hasPicture
+                    }
+                    // No picture: a translucent white silhouette (head and shoulders).
+                    Shape {
+                        id: silhouette
+                        visible: !avatar.hasPicture
+                        anchors { fill: parent; margins: 8 * root.s }
+                        readonly property real w: width
+                        readonly property real h: height
+                        ShapePath {
+                            fillColor: "#59FFFFFF"   // white, ~35% opacity
+                            strokeColor: "transparent"
+                            // head
+                            startX: silhouette.w * 0.5 + silhouette.w * 0.17; startY: silhouette.h * 0.36
+                            PathArc {
+                                x: silhouette.w * 0.5 - silhouette.w * 0.17; y: silhouette.h * 0.36
+                                radiusX: silhouette.w * 0.17; radiusY: silhouette.w * 0.17
+                            }
+                            PathArc {
+                                x: silhouette.w * 0.5 + silhouette.w * 0.17; y: silhouette.h * 0.36
+                                radiusX: silhouette.w * 0.17; radiusY: silhouette.w * 0.17
+                            }
+                        }
+                        ShapePath {
+                            fillColor: "#59FFFFFF"
+                            strokeColor: "transparent"
+                            // shoulders, cut off by the frame's bottom edge
+                            startX: silhouette.w * 0.14; startY: silhouette.h
+                            PathCubic {
+                                x: silhouette.w * 0.86; y: silhouette.h
+                                control1X: silhouette.w * 0.14; control1Y: silhouette.h * 0.56
+                                control2X: silhouette.w * 0.86; control2Y: silhouette.h * 0.56
+                            }
+                            PathLine { x: silhouette.w * 0.14; y: silhouette.h }
+                        }
+                    }
+                    Shape {
+                        anchors.fill: parent
+                        ShapePath {
+                            fillColor: "transparent"; strokeColor: root.c.a3; strokeWidth: 3 * root.s
+                            joinStyle: ShapePath.MiterJoin
+                            startX: 0; startY: 0
+                            PathLine { x: avatar.width - avatar.chamfer; y: 0 }
+                            PathLine { x: avatar.width; y: avatar.chamfer }
+                            PathLine { x: avatar.width; y: avatar.height }
+                            PathLine { x: avatar.chamfer; y: avatar.height }
+                            PathLine { x: 0; y: avatar.height - avatar.chamfer }
+                            PathLine { x: 0; y: 0 }
+                        }
+                    }
+                }
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 12 * root.s
+
+                    HudCombo {
+                        id: userBox
+                        Layout.fillWidth: true
+                        model: userModel
+                        textRole: "name"
+                        currentIndex: userModel.lastIndex
+                        font { family: root.uiFont; pixelSize: 24 * root.s }
+                        Accessible.name: root.txt("userName")
+                    }
+                    TextField {
+                        id: password
+                        Layout.fillWidth: true
+                        echoMode: TextInput.Password
+                        placeholderText: root.txt("password")
+                        placeholderTextColor: root.c.dim
+                        color: root.c.a3
+                        selectionColor: root.c.a3
+                        selectedTextColor: root.c.bg
+                        font { family: root.monoFont; pixelSize: 20 * root.s }
+                        padding: 12 * root.s
+                        focus: true
+                        Keys.onReturnPressed: root.doLogin()
+                        Keys.onEnterPressed: root.doLogin()
+                        // Caps Lock is inferred from the keys themselves: SDDM's keyboard.capsLock
+                        // only works on X11 and this greeter runs on Wayland.
+                        Keys.onPressed: (event) => {
+                            root.trackCaps(event)
+                            event.accepted = false   // let the field still receive the key
+                        }
+                        onTextChanged: if (text.length > 0) root.loginError = false
+                        background: Rectangle {
+                            color: root.c.bg
+                            border.color: password.activeFocus ? root.c.a3 : root.c.edge
+                            border.width: 2
+                        }
+                    }
+                    HudCombo {
+                        id: sessionBox
+                        Layout.fillWidth: true
+                        model: sessionModel
+                        textRole: "name"
+                        currentIndex: sessionModel.lastIndex
+                        font { family: root.monoFont; pixelSize: 16 * root.s }
+                        Accessible.name: root.txt("session")
+                        // theme.conf defaultSession (set on desktop images): pick it until someone has
+                        // logged in once; after that SDDM's remembered session is respected.
+                        Component.onCompleted: {
+                            if (config.defaultSession && !userModel.lastUser) {
+                                const i = find(config.defaultSession, Qt.MatchStartsWith)
+                                if (i >= 0) currentIndex = i
+                            }
+                        }
+                    }
                 }
             }
-            HudCombo {
-                id: sessionBox
+            // Message line: the login error (animated) or the Caps Lock warning. Height is fixed
+            // so the panel does not jump when one appears.
+            Item {
+                id: alert
                 Layout.fillWidth: true
-                model: sessionModel
-                textRole: "name"
-                currentIndex: sessionModel.lastIndex
-                font { family: root.monoFont; pixelSize: 16 * root.s }
-                Accessible.name: textConstants.session
+                Layout.preferredHeight: 30 * root.s
+                readonly property string errorText: root.txt("loginFailed").toUpperCase()
+                property int shown: 0          // characters revealed (typewriter)
+                property real ghost: 0         // strength of the cyan/coral glitch copies
+
+                Row {
+                    id: errorRow
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 10 * root.s
+                    // Hidden during the two bips; the bzzt sets ghost/shown and reveals it.
+                    visible: root.loginError && (alert.shown > 0 || alert.ghost > 0)
+
+                    Rectangle {
+                        width: errTag.implicitWidth + 12 * root.s
+                        height: errTag.implicitHeight + 4 * root.s
+                        color: root.c.a1
+                        Text {
+                            id: errTag
+                            anchors.centerIn: parent
+                            text: "ERR"
+                            color: root.c.bg
+                            font { family: root.monoFont; pixelSize: 14 * root.s; bold: true }
+                        }
+                    }
+                    Item {
+                        width: errMain.implicitWidth; height: errMain.implicitHeight
+                        readonly property string line: alert.errorText.substring(0, alert.shown)
+                                                       + (alert.shown < alert.errorText.length ? "_" : "")
+                        Text {   // glitch copy, cyan, pushed right
+                            x: 3 * root.s * alert.ghost; text: parent.line; opacity: alert.ghost
+                            color: root.c.a3; font: errMain.font
+                        }
+                        Text {   // glitch copy, accent, pushed left
+                            x: -3 * root.s * alert.ghost; text: parent.line; opacity: alert.ghost
+                            color: root.c.a2; font: errMain.font
+                        }
+                        Text {
+                            id: errMain
+                            text: parent.line
+                            color: root.c.a1
+                            font { family: root.monoFont; pixelSize: 18 * root.s; bold: true; letterSpacing: 2 * root.s }
+                        }
+                    }
+                }
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: !root.loginError && root.capsOn
+                    text: "▲ " + root.txt("capslockWarning")
+                    color: root.c.a1
+                    font { family: root.monoFont; pixelSize: 16 * root.s }
+                }
             }
-            Text {
-                id: message
-                Layout.fillWidth: true
-                wrapMode: Text.Wrap
-                color: root.c.a1
-                font { family: root.monoFont; pixelSize: 16 * root.s }
-                text: keyboard.capsLock ? textConstants.capslockWarning : ""
-            }
-            Item { Layout.fillHeight: true }
             Button {
                 id: loginButton
+                Layout.alignment: Qt.AlignRight
                 Layout.preferredWidth: 260 * root.s
                 Layout.preferredHeight: 56 * root.s
-                text: textConstants.login.toUpperCase()
+                text: root.txt("login").toUpperCase()
                 font { family: root.uiFont; pixelSize: 24 * root.s; bold: true }
                 onClicked: root.doLogin()
                 contentItem: Text {
@@ -176,24 +394,93 @@ Rectangle {
         sddm.login(userBox.currentText, password.text, sessionBox.currentIndex)
     }
 
+    // Caps Lock, inferred from typed letters (Wayland greeter: keyboard.capsLock stays false).
+    property bool capsOn: keyboard.capsLock
+    function trackCaps(event) {
+        if (event.key === Qt.Key_CapsLock) {
+            capsOn = !capsOn
+            return
+        }
+        const t = event.text
+        if (t.length !== 1 || t.toUpperCase() === t.toLowerCase())
+            return   // not a letter: tells nothing about Caps Lock
+        const upper = t === t.toUpperCase()
+        const shift = (event.modifiers & Qt.ShiftModifier) !== 0
+        capsOn = upper !== shift
+    }
+
+    property bool loginError: false
+
     Connections {
         target: sddm
         function onLoginFailed() {
-            message.text = textConstants.loginFailed
             password.text = ""
+            root.loginError = true
+            if (errorSound.item) errorSound.item.play()
+            failAnim.restart()
             password.forceActiveFocus()
         }
     }
 
-    // Bottom right: power actions the system allows
+    // Login-failed sound; empty when QtMultimedia is missing.
+    Loader { id: errorSound; source: "ErrorSound.qml" }
+
+    // Login failed, timed to the sound (bip 0.00 s, bip 0.12 s, bzzt 0.26-0.45 s):
+    // the outline pulses softly on each bip, then on the bzzt the panel jolts, flashes,
+    // a scan line sweeps down and the message types itself in with a short glitch.
+    readonly property int bzztAt: 260
+    SequentialAnimation {
+        id: failAnim
+        // Start clean (a previous error may still be on screen); ERR appears on the bzzt.
+        PropertyAction { target: alert; property: "shown"; value: 0 }
+        PropertyAction { target: alert; property: "ghost"; value: 0 }
+        // Two soft pulses, one per bip.
+        NumberAnimation { target: flash; property: "opacity"; to: 0.45; duration: 25 }
+        NumberAnimation { target: flash; property: "opacity"; to: 0; duration: 70 }
+        PauseAnimation { duration: 25 }
+        NumberAnimation { target: flash; property: "opacity"; to: 0.45; duration: 25 }
+        NumberAnimation { target: flash; property: "opacity"; to: 0; duration: 70 }
+        PauseAnimation { duration: root.bzztAt - 215 }
+        // The bzzt: everything at once. The jolt (~0.25 s) spans the bzzt (0.26-0.45 s).
+        ParallelAnimation {
+            SequentialAnimation {
+                NumberAnimation { target: shake; property: "x"; to: -14 * root.s; duration: 40 }
+                NumberAnimation { target: shake; property: "x"; to: 12 * root.s; duration: 50 }
+                NumberAnimation { target: shake; property: "x"; to: -8 * root.s; duration: 50 }
+                NumberAnimation { target: shake; property: "x"; to: 5 * root.s; duration: 50 }
+                NumberAnimation { target: shake; property: "x"; to: 0; duration: 60 }
+            }
+            SequentialAnimation {
+                NumberAnimation { target: flash; property: "opacity"; to: 1; duration: 50 }
+                NumberAnimation { target: flash; property: "opacity"; to: 0.25; duration: 70 }
+                NumberAnimation { target: flash; property: "opacity"; to: 1; duration: 50 }
+                NumberAnimation { target: flash; property: "opacity"; to: 0; duration: 450; easing.type: Easing.OutQuad }
+            }
+            SequentialAnimation {
+                PropertyAction { target: scan; property: "opacity"; value: 0.9 }
+                NumberAnimation { target: scan; property: "y"; from: 0; to: panel.height; duration: 320; easing.type: Easing.InOutQuad }
+                PropertyAction { target: scan; property: "opacity"; value: 0 }
+            }
+            SequentialAnimation {
+                PropertyAction { target: alert; property: "ghost"; value: 1 }
+                NumberAnimation { target: alert; property: "shown"; from: 0; to: alert.errorText.length; duration: 300 }
+                NumberAnimation { target: alert; property: "ghost"; to: 0.35; duration: 60 }
+                NumberAnimation { target: alert; property: "ghost"; to: 0.8; duration: 60 }
+                NumberAnimation { target: alert; property: "ghost"; to: 0; duration: 220 }
+            }
+        }
+    }
+
+    // Bottom band, right: power actions the system allows
     Row {
-        anchors { right: parent.right; rightMargin: 80 * root.s; bottom: parent.bottom; bottomMargin: 20 * root.s }
+        anchors { right: parent.right; rightMargin: 80 * root.s
+                  verticalCenter: parent.bottom; verticalCenterOffset: -root.band / 2 }
         spacing: 24 * root.s
         Repeater {
             model: [
-                { k: "suspend",  label: textConstants.suspend,  allowed: sddm.canSuspend },
-                { k: "restart",  label: textConstants.reboot,   allowed: sddm.canReboot },
-                { k: "shutdown", label: textConstants.shutdown, allowed: sddm.canPowerOff }
+                { k: "suspend",  label: root.txt("suspend"),  allowed: sddm.canSuspend },
+                { k: "restart",  label: root.txt("reboot"),   allowed: sddm.canReboot },
+                { k: "shutdown", label: root.txt("shutdown"), allowed: sddm.canPowerOff }
             ]
             delegate: AbstractButton {
                 required property var modelData
@@ -216,7 +503,7 @@ Rectangle {
     }
     Text {
         x: 80 * root.s
-        anchors { bottom: parent.bottom; bottomMargin: 40 * root.s }
+        anchors { verticalCenter: parent.bottom; verticalCenterOffset: -root.band / 2 }
         text: "BASED ON BAZZITE"
         color: root.c.dim
         font { family: root.monoFont; pixelSize: 16 * root.s; letterSpacing: 3 * root.s }

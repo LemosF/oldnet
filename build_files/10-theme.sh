@@ -7,3 +7,7 @@ grep -rs 'LookAndFeelPackage\|ColorScheme' /etc/xdg/kdeglobals /usr/share/kde-se
 # kwriteconfig6 merges into an existing /etc/xdg file instead of replacing it.
 kwriteconfig6 --file /etc/xdg/kdeglobals --group KDE --key LookAndFeelPackage org.oldnet.desktop
 kwriteconfig6 --file /etc/xdg/konsolerc --group "Desktop Entry" --key DefaultProfile OldNet.profile
+
+# os-release says LOGO=oldnet: the splash after login and "About this System" look it up
+# in hicolor, so without this they show a missing-image icon.
+install -Dm644 /usr/share/oldnet/branding/logo/mark-dark.svg /usr/share/icons/hicolor/scalable/apps/oldnet.svg
