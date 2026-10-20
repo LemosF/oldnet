@@ -54,15 +54,18 @@ tr -d '\r' < "$work/log" > "$work/clean.log"
 cat "$work/clean.log"
 # Without this the test could pass while seeing nothing, as it once did.
 grep -qE 'GREETER|Main\.qml' "$work/clean.log" || fail "greeter output not captured (no greeter log lines)"
-# VirtualKeyboard.qml is allowed to fail to load: the Loader stays empty on purpose.
+# VirtualKeyboard.qml and ErrorSound.qml may fail to load: their Loaders stay empty on purpose.
 if grep -E '\.qml:[0-9]+|is not a type|is not installed|is not defined|Cannot assign|Cannot read|ReferenceError|TypeError' "$work/clean.log" \
-   | grep -v VirtualKeyboard; then
+   | grep -v -E "VirtualKeyboard|ErrorSound"; then
   fail "QML errors in the OldNet SDDM theme (see above)"
 fi
 [ "$rc" = 124 ] || echo "warning: greeter test exited with $rc (no QML errors found)"
 rm -rf "$work"
 [ -d /usr/lib64/qt6/qml/SddmComponents ] && echo "SddmComponents: present (translated texts)" \
   || echo "SddmComponents: absent (English texts)"
+[ -f "$THEME/assets/login-failed.wav" ] || fail "theme file missing: assets/login-failed.wav"
+[ -d /usr/lib64/qt6/qml/QtMultimedia ] && echo "QtMultimedia: present (login-failed sound)" \
+  || echo "QtMultimedia: absent (login screen has no sound)"
 
 if [ -d /usr/lib64/qt6/qml/QtQuick/VirtualKeyboard ]; then
   echo "QtVirtualKeyboard: present"
