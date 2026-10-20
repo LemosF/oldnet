@@ -1,0 +1,20 @@
+{
+    "KPackageStructure": "KWin/Script",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "OldNet OS"
+            }
+        ],
+        "Description": "Opens Mail and Messages full screen, without a frame, on their OldNet tabs",
+        "Description[pt_PT]": "Abre o Mail e o Messages em ecrã inteiro, sem moldura, nas suas tabs OldNet",
+        "EnabledByDefault": true,
+        "Id": "oldnet-tab-apps",
+        "License": "Apache-2.0",
+        "Name": "OldNet Tab Apps",
+        "Version": "0.1",
+        "Website": "https://github.com/LemosF/oldnet"
+    },
+    "X-Plasma-API": "javascript",
+    "X-Plasma-MainScript": "code/main.js"
+}
