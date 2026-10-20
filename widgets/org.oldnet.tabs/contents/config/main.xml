@@ -4,7 +4,11 @@
       xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0 http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
   <kcfgfile name=""/>
   <group name="General">
-    <!-- One entry per tab, in desktop order. "none" = no icon / no launcher. -->
+    <!-- Tab = KDE activity of the same name (see /usr/bin/oldnet-tab, same order). -->
+    <entry name="tabNames" type="StringList">
+      <default>Desktop,Mail,Messages,Games,Code</default>
+    </entry>
+    <!-- One entry per tab, in tab order. "none" = no icon / no launcher. -->
     <entry name="tabIcons" type="StringList">
       <default>user-desktop,mail-message,dialog-messages,input-gaming,applications-development</default>
     </entry>
