@@ -80,11 +80,10 @@ PlasmoidItem {
 
     function activate(index) {
         let command = "oldnet-tab switch " + (index + 1)
-        const launcher = launchers[index] || "none"
-        // Desktop file ids only: nothing that could reach the shell.
-        if (launcher !== "none" && /^[A-Za-z0-9._-]+$/.test(launcher)
-                && windowsOn(tabNames[index], revision) === 0) {
-            command += " && gtk-launch " + launcher
+        // Tabs that own an app (Mail, Messages) open it when they are empty;
+        // oldnet-tab finds the app's desktop file (RPM or Flatpak).
+        if ((launchers[index] || "none") !== "none" && windowsOn(tabNames[index], revision) === 0) {
+            command += " --launch"
         }
         run(command)
     }

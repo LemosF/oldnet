@@ -1,9 +1,11 @@
 #!/usr/bin/bash
 # oldnet-tab: backend of OldNet Tabs. Each tab is a KDE activity named after the tab.
 #
-#   oldnet-tab ensure            create the tab activities that are missing
-#   oldnet-tab switch <N|name>   switch to a tab (1-based number or name), creating it
-#   oldnet-tab panel  <name>     show the taskbar only on tabs that should have one
+#   oldnet-tab ensure                     create the tab activities that are missing
+#   oldnet-tab switch <N|name> [--launch] switch to a tab (1-based number or name),
+#                                         creating it; --launch opens the tab's app
+#                                         (the widget passes it when the tab is empty)
+#   oldnet-tab panel  <name>              show the taskbar only on tabs that have one
 #
 # Used by the OldNet Tabs widget and by the Meta+1..5 shortcuts. Talks to the activity
 # manager and plasmashell over the session bus, so it works for new and existing users.
@@ -71,6 +73,36 @@ tab_name() {   # 1-based number or name -> name
   fi
 }
 
+# The KWin script oldnet-tab-apps opens Mail/Messages full screen on their tabs; it
+# needs this user's activity ids. Write them only when they change.
+sync_kwin() {
+  local t id current changed=0
+  for t in Mail Messages; do
+    id=$(activity_id "$t")
+    current=$(kreadconfig6 --file kwinrc --group Script-oldnet-tab-apps --key "$t")
+    if [ -n "$id" ] && [ "$id" != "$current" ]; then
+      kwriteconfig6 --file kwinrc --group Script-oldnet-tab-apps --key "$t" "$id"
+      changed=1
+    fi
+  done
+  [ "$changed" = 0 ] || busctl --user call org.kde.KWin /KWin org.kde.KWin reconfigure >/dev/null || true
+}
+
+# The app that owns a tab: first desktop file found (RPM or Flatpak id).
+tab_app() {
+  local candidates=() f dir
+  case "$1" in
+    Mail)     candidates=(org.mozilla.Thunderbird thunderbird net.thunderbird.Thunderbird) ;;
+    Messages) candidates=(org.kde.neochat) ;;
+  esac
+  for f in "${candidates[@]}"; do
+    for dir in /usr/share/applications /var/lib/flatpak/exports/share/applications \
+               "$HOME/.local/share/flatpak/exports/share/applications"; do
+      [ -f "$dir/$f.desktop" ] && { echo "$dir/$f.desktop"; return; }
+    done
+  done
+}
+
 panel() {
   local hiding=none
   [[ "$NO_TASKBAR" == *" $1 "* ]] && hiding=autohide
@@ -80,13 +112,19 @@ panel() {
 
 case "${1:-}" in
   ensure)
-    for t in "${TABS[@]}"; do ensure_tab "$t" >/dev/null; done ;;
+    for t in "${TABS[@]}"; do ensure_tab "$t" >/dev/null; done
+    sync_kwin ;;
   switch)
     name=$(tab_name "${2:?tab number or name}")
     [ -n "$name" ] || exit 1
     id=$(ensure_tab "$name")
+    sync_kwin
     am SetCurrentActivity s "$id" >/dev/null
-    panel "$name" ;;
+    panel "$name"
+    if [ "${3:-}" = --launch ]; then
+      app=$(tab_app "$name")
+      [ -z "$app" ] || setsid -f gio launch "$app" >/dev/null 2>&1
+    fi ;;
   panel)
     panel "${2:?tab name}" ;;
   *)
