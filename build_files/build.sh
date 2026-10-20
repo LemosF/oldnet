@@ -10,8 +10,11 @@ sed -i \
   -e 's/^HOME_URL=.*/HOME_URL="https:\/\/github.com\/LemosF\/oldnet"/' \
   -e 's/^LOGO=.*/LOGO=oldnet/' \
   -e '/^VARIANT_ID=/d' \
+  -e '/^DEFAULT_HOSTNAME=/d' \
   "$OSR"
 grep -q '^ID_LIKE=' "$OSR" || echo 'ID_LIKE="fedora"' >> "$OSR"
+# Fallback hostname for new installs; the login screen greets with the hostname.
+echo 'DEFAULT_HOSTNAME="oldnet"' >> "$OSR"
 echo "VARIANT_ID=${IMAGE_NAME}" >> "$OSR"
 
 # --- Numbered steps (10-theme.sh, 20-tabs.sh, ...) in order ---
