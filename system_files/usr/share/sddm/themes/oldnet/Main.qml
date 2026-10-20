@@ -102,6 +102,7 @@ Rectangle {
         anchors { right: parent.right; rightMargin: 180 * root.s; verticalCenter: parent.verticalCenter }
         width: 680 * root.s
         height: form.implicitHeight + 2 * pad   // fits its content: no empty band in the middle
+        transform: Translate { id: shake }       // moved by the login-failed animation
 
         Shape {
             anchors.fill: parent
@@ -121,6 +122,31 @@ Rectangle {
                 PathLine { x: panel.width - panel.cut; y: 0 }
                 PathLine { x: panel.width; y: panel.cut }
             }
+        }
+
+        // Login-failed flash: the whole chamfered outline lights up in the accent colour.
+        Shape {
+            id: flash
+            anchors.fill: parent
+            opacity: 0
+            ShapePath {
+                fillColor: "#10" + root.c.a1.substring(1)   // #AARRGGBB: accent at ~6% alpha
+                strokeColor: root.c.a1; strokeWidth: 3 * root.s
+                startX: 0; startY: 0
+                PathLine { x: panel.width - panel.cut; y: 0 }
+                PathLine { x: panel.width; y: panel.cut }
+                PathLine { x: panel.width; y: panel.height }
+                PathLine { x: panel.cut; y: panel.height }
+                PathLine { x: 0; y: panel.height - panel.cut }
+                PathLine { x: 0; y: 0 }
+            }
+        }
+        // ...and a scan line sweeps down the panel.
+        Rectangle {
+            id: scan
+            x: 0; width: panel.width; height: 2 * root.s
+            color: root.c.a1
+            opacity: 0
         }
 
         // One hidden item per user, so the picture can follow the selected user's icon role.
@@ -214,6 +240,13 @@ Rectangle {
                         focus: true
                         Keys.onReturnPressed: root.doLogin()
                         Keys.onEnterPressed: root.doLogin()
+                        // Caps Lock is inferred from the keys themselves: SDDM's keyboard.capsLock
+                        // only works on X11 and this greeter runs on Wayland.
+                        Keys.onPressed: (event) => {
+                            root.trackCaps(event)
+                            event.accepted = false   // let the field still receive the key
+                        }
+                        onTextChanged: if (text.length > 0) root.loginError = false
                         background: Rectangle {
                             color: root.c.bg
                             border.color: password.activeFocus ? root.c.a3 : root.c.edge
@@ -239,15 +272,62 @@ Rectangle {
                     }
                 }
             }
-            Text {
-                id: message
+            // Message line: the login error (animated) or the Caps Lock warning. Height is fixed
+            // so the panel does not jump when one appears.
+            Item {
+                id: alert
                 Layout.fillWidth: true
-                // One line kept free so the panel does not jump when a message appears.
-                Layout.preferredHeight: 22 * root.s
-                elide: Text.ElideRight
-                color: root.c.a1
-                font { family: root.monoFont; pixelSize: 16 * root.s }
-                text: keyboard.capsLock ? root.txt("capslockWarning") : ""
+                Layout.preferredHeight: 30 * root.s
+                readonly property string errorText: root.txt("loginFailed").toUpperCase()
+                property int shown: 0          // characters revealed (typewriter)
+                property real ghost: 0         // strength of the cyan/coral glitch copies
+
+                Row {
+                    id: errorRow
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 10 * root.s
+                    visible: root.loginError
+
+                    Rectangle {
+                        width: errTag.implicitWidth + 12 * root.s
+                        height: errTag.implicitHeight + 4 * root.s
+                        color: root.c.a1
+                        Text {
+                            id: errTag
+                            anchors.centerIn: parent
+                            text: "ERR"
+                            color: root.c.bg
+                            font { family: root.monoFont; pixelSize: 14 * root.s; bold: true }
+                        }
+                    }
+                    Item {
+                        width: errMain.implicitWidth; height: errMain.implicitHeight
+                        readonly property string line: alert.errorText.substring(0, alert.shown)
+                                                       + (alert.shown < alert.errorText.length ? "_" : "")
+                        Text {   // glitch copy, cyan, pushed right
+                            x: 3 * root.s * alert.ghost; text: parent.line; opacity: alert.ghost
+                            color: root.c.a3; font: errMain.font
+                        }
+                        Text {   // glitch copy, accent, pushed left
+                            x: -3 * root.s * alert.ghost; text: parent.line; opacity: alert.ghost
+                            color: root.c.a2; font: errMain.font
+                        }
+                        Text {
+                            id: errMain
+                            text: parent.line
+                            color: root.c.a1
+                            font { family: root.monoFont; pixelSize: 18 * root.s; bold: true; letterSpacing: 2 * root.s }
+                        }
+                    }
+                }
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: !root.loginError && root.capsOn
+                    text: "▲ " + root.txt("capslockWarning")
+                    color: root.c.a1
+                    font { family: root.monoFont; pixelSize: 16 * root.s }
+                }
             }
             Button {
                 id: loginButton
@@ -274,12 +354,61 @@ Rectangle {
         sddm.login(userBox.currentText, password.text, sessionBox.currentIndex)
     }
 
+    // Caps Lock, inferred from typed letters (Wayland greeter: keyboard.capsLock stays false).
+    property bool capsOn: keyboard.capsLock
+    function trackCaps(event) {
+        if (event.key === Qt.Key_CapsLock) {
+            capsOn = !capsOn
+            return
+        }
+        const t = event.text
+        if (t.length !== 1 || t.toUpperCase() === t.toLowerCase())
+            return   // not a letter: tells nothing about Caps Lock
+        const upper = t === t.toUpperCase()
+        const shift = (event.modifiers & Qt.ShiftModifier) !== 0
+        capsOn = upper !== shift
+    }
+
+    property bool loginError: false
+
     Connections {
         target: sddm
         function onLoginFailed() {
-            message.text = root.txt("loginFailed")
             password.text = ""
+            root.loginError = true
+            failAnim.restart()
             password.forceActiveFocus()
+        }
+    }
+
+    // Login failed: the panel jolts, its outline flashes, a scan line sweeps down and the
+    // message types itself in with a short chromatic glitch. About 0.6 s in total.
+    ParallelAnimation {
+        id: failAnim
+        SequentialAnimation {
+            NumberAnimation { target: shake; property: "x"; to: -14 * root.s; duration: 40 }
+            NumberAnimation { target: shake; property: "x"; to: 12 * root.s; duration: 50 }
+            NumberAnimation { target: shake; property: "x"; to: -8 * root.s; duration: 50 }
+            NumberAnimation { target: shake; property: "x"; to: 5 * root.s; duration: 50 }
+            NumberAnimation { target: shake; property: "x"; to: 0; duration: 60 }
+        }
+        SequentialAnimation {
+            NumberAnimation { target: flash; property: "opacity"; to: 1; duration: 50 }
+            NumberAnimation { target: flash; property: "opacity"; to: 0.25; duration: 70 }
+            NumberAnimation { target: flash; property: "opacity"; to: 1; duration: 50 }
+            NumberAnimation { target: flash; property: "opacity"; to: 0; duration: 450; easing.type: Easing.OutQuad }
+        }
+        SequentialAnimation {
+            PropertyAction { target: scan; property: "opacity"; value: 0.9 }
+            NumberAnimation { target: scan; property: "y"; from: 0; to: panel.height; duration: 320; easing.type: Easing.InOutQuad }
+            PropertyAction { target: scan; property: "opacity"; value: 0 }
+        }
+        SequentialAnimation {
+            PropertyAction { target: alert; property: "ghost"; value: 1 }
+            NumberAnimation { target: alert; property: "shown"; from: 0; to: alert.errorText.length; duration: 300 }
+            NumberAnimation { target: alert; property: "ghost"; to: 0.35; duration: 60 }
+            NumberAnimation { target: alert; property: "ghost"; to: 0.8; duration: 60 }
+            NumberAnimation { target: alert; property: "ghost"; to: 0; duration: 220 }
         }
     }
 
