@@ -44,6 +44,17 @@ swap still builds. `build_files/30-login.sh` fails the build if it does not.
 | Fallback after a rebase from PLM | `/usr/lib/systemd/system-generators/oldnet-display-manager` |
 | Build checks | `build_files/30-login.sh` |
 
+**Steam Game Mode autologin.** The Bazzite base also carries its deck autologin:
+`bazzite-autologin.service` writes `/etc/sddm.conf.d/zz-bazzite-autologin.conf`
+(user uid 1000) and `zz-holo-autologin.conf` (Game Mode session), and
+`/usr/lib/sddm/sddm.conf.d/holo.conf` relogs into it. Plasma Login Manager ignored
+those files, but SDDM reads them. On desktop images they would skip the login screen
+and boot straight into Game Mode, and loop if gamescope cannot start (seen in a
+VirtualBox VM). So on `oldnet` and `oldnet-nvidia`, `25-sddm.sh` disables the service
+(also in a first-boot preset) and removes `holo.conf`. A tmpfiles rule deletes those two
+generated files from `/etc` on systems that already booted with them. `oldnet-deck` keeps
+the Game Mode autologin.
+
 Coming from an image with Plasma Login Manager: `/etc/plasmalogin.conf*` and
 `/var/lib/plasmalogin` stay on disk unused, and they are harmless. Automatic login set up
 in Plasma Login Manager does not carry over. Set it again in System Settings, under
