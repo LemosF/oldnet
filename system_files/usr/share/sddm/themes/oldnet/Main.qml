@@ -98,9 +98,10 @@ Rectangle {
     Item {
         id: panel
         readonly property real cut: 40 * root.s
+        readonly property real pad: 36 * root.s
         anchors { right: parent.right; rightMargin: 180 * root.s; verticalCenter: parent.verticalCenter }
-        width: 600 * root.s
-        height: 480 * root.s
+        width: 680 * root.s
+        height: form.implicitHeight + 2 * pad   // fits its content: no empty band in the middle
 
         Shape {
             anchors.fill: parent
@@ -122,67 +123,135 @@ Rectangle {
             }
         }
 
-        ColumnLayout {
-            anchors { fill: parent; margins: 48 * root.s }
-            spacing: 16 * root.s
+        // One hidden item per user, so the picture can follow the selected user's icon role.
+        Repeater {
+            id: userIcons
+            model: userModel
+            delegate: Item {
+                required property string icon
+                readonly property string iconPath: icon
+            }
+        }
 
-            HudCombo {
-                id: userBox
-                Layout.fillWidth: true
-                model: userModel
-                textRole: "name"
-                currentIndex: userModel.lastIndex
-                font { family: root.uiFont; pixelSize: 24 * root.s }
-                Accessible.name: root.txt("userName")
-            }
-            TextField {
-                id: password
-                Layout.fillWidth: true
-                echoMode: TextInput.Password
-                placeholderText: root.txt("password")
-                placeholderTextColor: root.c.dim
-                color: root.c.a3
-                selectionColor: root.c.a3
-                selectedTextColor: root.c.bg
-                font { family: root.monoFont; pixelSize: 20 * root.s }
-                padding: 12 * root.s
-                focus: true
-                Keys.onReturnPressed: root.doLogin()
-                Keys.onEnterPressed: root.doLogin()
-                background: Rectangle {
-                    color: root.c.bg
-                    border.color: password.activeFocus ? root.c.a3 : root.c.edge
-                    border.width: 2
+        ColumnLayout {
+            id: form
+            anchors { left: parent.left; right: parent.right; top: parent.top; margins: panel.pad }
+            spacing: 14 * root.s
+
+            RowLayout {
+                spacing: 20 * root.s
+
+                // XP-style user picture. SDDM finds the image set in System Settings > Users
+                // (AccountsService); without one, the user's initial is shown instead.
+                Item {
+                    id: avatar
+                    readonly property real chamfer: 12 * root.s
+                    readonly property var entry: userIcons.count > userBox.currentIndex
+                                                 ? userIcons.itemAt(userBox.currentIndex) : null
+                    Layout.preferredWidth: 132 * root.s
+                    Layout.preferredHeight: 132 * root.s
+                    Layout.alignment: Qt.AlignTop
+                    Accessible.role: Accessible.Graphic
+                    Accessible.name: userBox.currentText
+
+                    Rectangle { anchors { fill: parent; margins: 8 * root.s } color: root.c.bg }
+                    Image {
+                        id: face
+                        anchors { fill: parent; margins: 8 * root.s }
+                        source: avatar.entry ? avatar.entry.iconPath : ""
+                        sourceSize: Qt.size(width, height)
+                        fillMode: Image.PreserveAspectCrop
+                        asynchronous: true
+                        visible: status === Image.Ready
+                    }
+                    Text {
+                        anchors.centerIn: parent
+                        visible: face.status !== Image.Ready
+                        text: userBox.currentText ? userBox.currentText.charAt(0).toUpperCase() : "?"
+                        color: root.c.a3
+                        font { family: root.uiFont; pixelSize: 60 * root.s; bold: true }
+                    }
+                    Shape {
+                        anchors.fill: parent
+                        ShapePath {
+                            fillColor: "transparent"; strokeColor: root.c.a3; strokeWidth: 3 * root.s
+                            joinStyle: ShapePath.MiterJoin
+                            startX: 0; startY: 0
+                            PathLine { x: avatar.width - avatar.chamfer; y: 0 }
+                            PathLine { x: avatar.width; y: avatar.chamfer }
+                            PathLine { x: avatar.width; y: avatar.height }
+                            PathLine { x: avatar.chamfer; y: avatar.height }
+                            PathLine { x: 0; y: avatar.height - avatar.chamfer }
+                            PathLine { x: 0; y: 0 }
+                        }
+                    }
                 }
-            }
-            HudCombo {
-                id: sessionBox
-                Layout.fillWidth: true
-                model: sessionModel
-                textRole: "name"
-                currentIndex: sessionModel.lastIndex
-                font { family: root.monoFont; pixelSize: 16 * root.s }
-                Accessible.name: root.txt("session")
-                // theme.conf defaultSession (set on desktop images): pick it until someone has
-                // logged in once; after that SDDM's remembered session is respected.
-                Component.onCompleted: {
-                    if (config.defaultSession && !userModel.lastUser) {
-                        const i = find(config.defaultSession, Qt.MatchStartsWith)
-                        if (i >= 0) currentIndex = i
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 12 * root.s
+
+                    HudCombo {
+                        id: userBox
+                        Layout.fillWidth: true
+                        model: userModel
+                        textRole: "name"
+                        currentIndex: userModel.lastIndex
+                        font { family: root.uiFont; pixelSize: 24 * root.s }
+                        Accessible.name: root.txt("userName")
+                    }
+                    TextField {
+                        id: password
+                        Layout.fillWidth: true
+                        echoMode: TextInput.Password
+                        placeholderText: root.txt("password")
+                        placeholderTextColor: root.c.dim
+                        color: root.c.a3
+                        selectionColor: root.c.a3
+                        selectedTextColor: root.c.bg
+                        font { family: root.monoFont; pixelSize: 20 * root.s }
+                        padding: 12 * root.s
+                        focus: true
+                        Keys.onReturnPressed: root.doLogin()
+                        Keys.onEnterPressed: root.doLogin()
+                        background: Rectangle {
+                            color: root.c.bg
+                            border.color: password.activeFocus ? root.c.a3 : root.c.edge
+                            border.width: 2
+                        }
+                    }
+                    HudCombo {
+                        id: sessionBox
+                        Layout.fillWidth: true
+                        model: sessionModel
+                        textRole: "name"
+                        currentIndex: sessionModel.lastIndex
+                        font { family: root.monoFont; pixelSize: 16 * root.s }
+                        Accessible.name: root.txt("session")
+                        // theme.conf defaultSession (set on desktop images): pick it until someone has
+                        // logged in once; after that SDDM's remembered session is respected.
+                        Component.onCompleted: {
+                            if (config.defaultSession && !userModel.lastUser) {
+                                const i = find(config.defaultSession, Qt.MatchStartsWith)
+                                if (i >= 0) currentIndex = i
+                            }
+                        }
                     }
                 }
             }
             Text {
                 id: message
                 Layout.fillWidth: true
-                wrapMode: Text.Wrap
+                // One line kept free so the panel does not jump when a message appears.
+                Layout.preferredHeight: 22 * root.s
+                elide: Text.ElideRight
                 color: root.c.a1
                 font { family: root.monoFont; pixelSize: 16 * root.s }
                 text: keyboard.capsLock ? root.txt("capslockWarning") : ""
             }
-            Item { Layout.fillHeight: true }
             Button {
                 id: loginButton
+                Layout.alignment: Qt.AlignRight
                 Layout.preferredWidth: 260 * root.s
                 Layout.preferredHeight: 56 * root.s
                 text: root.txt("login").toUpperCase()
