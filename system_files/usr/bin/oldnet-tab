@@ -50,13 +50,28 @@ set_background() {   # activity id, tab name
   shell_js "$js" || true
 }
 
+original_activity() {   # the user's own first activity: the first one that is not a tab
+  local id name
+  for id in $(am ListActivities | jq -r '.data[0][]'); do
+    name=$(am ActivityName s "$id" | jq -r '.data[0]')
+    [[ " ${TABS[*]} " == *" $name "* ]] || { echo "$id"; return; }
+  done
+}
+
 ensure_tab() {   # name -> id, creating the activity if needed
   local name=$1 id
   id=$(activity_id "$name")
   if [ -z "$id" ] && [ "$name" = Desktop ]; then
-    # The first activity of every Plasma user ("Default") becomes the Desktop tab.
-    id=$(am CurrentActivity | jq -r '.data[0]')
-    am SetActivityName s "$id" s Desktop >/dev/null
+    # The user's original activity ("Default") becomes the Desktop tab. Never the
+    # current activity: that may be another tab.
+    id=$(original_activity)
+    if [ -n "$id" ]; then
+      am SetActivityName ss "$id" Desktop >/dev/null
+    else
+      id=$(am AddActivity s Desktop | jq -r '.data[0]')
+      sleep 0.5
+      set_background "$id" Desktop
+    fi
   elif [ -z "$id" ]; then
     id=$(am AddActivity s "$name" | jq -r '.data[0]')
     sleep 0.5                       # let plasmashell create the activity's desktop
