@@ -88,7 +88,12 @@ PlasmoidItem {
         run(command)
     }
 
-    Component.onCompleted: run("oldnet-tab ensure")
+    // Create missing tabs, then apply the taskbar rule of the tab the session is on
+    // (onCurrentActivityChanged only fires on a change, not at start).
+    Component.onCompleted: {
+        const name = currentName(revision)
+        run("oldnet-tab ensure" + (tabNames.indexOf(name) >= 0 ? " && oldnet-tab panel " + name : ""))
+    }
 
     fullRepresentation: MouseArea {
         Layout.fillWidth: true
