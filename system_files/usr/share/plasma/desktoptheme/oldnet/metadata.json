@@ -1,0 +1,13 @@
+{
+    "KPlugin": {
+        "Authors": [{"Name": "OldNet OS"}],
+        "Description": "OldNet OS Plasma theme: chamfered HUD frames, colours from the active OldNet colour scheme",
+        "Description[pt_PT]": "Tema Plasma do OldNet OS: molduras HUD chamfradas, cores do esquema de cores OldNet ativo",
+        "Id": "oldnet",
+        "License": "Apache-2.0",
+        "Name": "OldNet",
+        "Version": "0.1",
+        "Website": "https://github.com/LemosF/oldnet"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}
