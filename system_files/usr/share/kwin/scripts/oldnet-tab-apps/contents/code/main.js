@@ -11,6 +11,24 @@ const APPS = [
     { tab: "Messages", match: /neochat/i },
 ];
 
+// Moving a freshly opened (focused) window to its tab makes KWin follow it there. The app
+// should get ready in the background instead: for a short while after a move, a switch
+// to that tab is undone and the user stays where they were.
+const GUARD_MS = 3000;
+let guard = { until: 0, tab: "", back: "" };
+
+function moveToTab(window, activity) {
+    const back = workspace.currentActivity;
+    window.activities = [activity];
+    if (back !== activity) guard = { until: Date.now() + GUARD_MS, tab: activity, back: back };
+}
+
+workspace.currentActivityChanged.connect(function () {
+    if (Date.now() < guard.until && workspace.currentActivity === guard.tab) {
+        workspace.currentActivity = guard.back;
+    }
+});
+
 function sameApp(a, b) {
     return String(a.resourceClass).toLowerCase() === String(b.resourceClass).toLowerCase();
 }
@@ -29,7 +47,7 @@ function claim(window) {
     const others = workspace.windowList().filter(w => w !== window && sameApp(w, window));
     if (others.length > 0) {
         const appOnTab = others.some(w => w.activities.indexOf(activity) !== -1);
-        if (appOnTab && window.activities.indexOf(activity) === -1) window.activities = [activity];
+        if (appOnTab && window.activities.indexOf(activity) === -1) moveToTab(window, activity);
         return;
     }
 
@@ -39,7 +57,7 @@ function claim(window) {
     // for a short while their first window is moved onto its own tab.
     const preloading = Number(readConfig("PreloadUntil", 0)) > Date.now() / 1000;
     if (!onTab && !preloading) return;
-    if (!onTab) window.activities = [activity];
+    if (!onTab) moveToTab(window, activity);
 
     window.noBorder = true;
     window.setMaximize(true, true);
