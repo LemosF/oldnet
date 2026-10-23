@@ -1,0 +1,55 @@
+{
+  "manifest_version": 2,
+  "name": "OldNet Night Market",
+  "description": "OldNet OS colour theme. Generated from themes/palettes/palettes.json.",
+  "version": "0.1",
+  "author": "OldNet OS",
+  "homepage_url": "https://github.com/LemosF/oldnet",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "oldnet-nightmarket@themes.oldnet.os",
+      "strict_min_version": "115.0"
+    }
+  },
+  "theme": {
+    "colors": {
+      "frame": "#0A0A0C",
+      "frame_inactive": "#0A0A0C",
+      "tab_background_text": "#9A98A3",
+      "tab_selected": "#121216",
+      "tab_text": "#ECE9E4",
+      "tab_line": "#FF5468",
+      "tab_loading": "#3CF0B0",
+      "toolbar": "#121216",
+      "toolbar_text": "#ECE9E4",
+      "toolbar_top_separator": "#2A2A33",
+      "toolbar_bottom_separator": "#2A2A33",
+      "toolbar_field": "#0A0A0C",
+      "toolbar_field_text": "#ECE9E4",
+      "toolbar_field_border": "#2A2A33",
+      "toolbar_field_focus": "#0A0A0C",
+      "toolbar_field_text_focus": "#ECE9E4",
+      "toolbar_field_border_focus": "#3AD7E8",
+      "toolbar_field_highlight": "#3AD7E8",
+      "toolbar_field_highlight_text": "#0A0A0C",
+      "button_background_hover": "#1C1C22",
+      "button_background_active": "#14141A",
+      "icons": "#ECE9E4",
+      "icons_attention": "#3CF0B0",
+      "popup": "#1C1C22",
+      "popup_text": "#ECE9E4",
+      "popup_border": "#2A2A33",
+      "popup_highlight": "#3AD7E8",
+      "popup_highlight_text": "#0A0A0C",
+      "sidebar": "#0A0A0C",
+      "sidebar_text": "#ECE9E4",
+      "sidebar_border": "#2A2A33",
+      "sidebar_highlight": "#3AD7E8",
+      "sidebar_highlight_text": "#0A0A0C"
+    },
+    "properties": {
+      "color_scheme": "dark",
+      "content_color_scheme": "dark"
+    }
+  }
+}

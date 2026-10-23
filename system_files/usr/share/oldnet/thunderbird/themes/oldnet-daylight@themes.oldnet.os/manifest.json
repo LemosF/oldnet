@@ -1,0 +1,55 @@
+{
+  "manifest_version": 2,
+  "name": "OldNet Daylight",
+  "description": "OldNet OS colour theme. Generated from themes/palettes/palettes.json.",
+  "version": "0.1",
+  "author": "OldNet OS",
+  "homepage_url": "https://github.com/LemosF/oldnet",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "oldnet-daylight@themes.oldnet.os",
+      "strict_min_version": "115.0"
+    }
+  },
+  "theme": {
+    "colors": {
+      "frame": "#EAE5DA",
+      "frame_inactive": "#EAE5DA",
+      "tab_background_text": "#6B665D",
+      "tab_selected": "#F3EFE6",
+      "tab_text": "#141418",
+      "tab_line": "#C8283D",
+      "tab_loading": "#0A7F63",
+      "toolbar": "#F3EFE6",
+      "toolbar_text": "#141418",
+      "toolbar_top_separator": "#C9C2B4",
+      "toolbar_bottom_separator": "#C9C2B4",
+      "toolbar_field": "#FFFFFF",
+      "toolbar_field_text": "#141418",
+      "toolbar_field_border": "#C9C2B4",
+      "toolbar_field_focus": "#FFFFFF",
+      "toolbar_field_text_focus": "#141418",
+      "toolbar_field_border_focus": "#0B6F80",
+      "toolbar_field_highlight": "#0B6F80",
+      "toolbar_field_highlight_text": "#FFFFFF",
+      "button_background_hover": "#EAE5DA",
+      "button_background_active": "#F7F4EE",
+      "icons": "#141418",
+      "icons_attention": "#0A7F63",
+      "popup": "#EAE5DA",
+      "popup_text": "#141418",
+      "popup_border": "#C9C2B4",
+      "popup_highlight": "#0B6F80",
+      "popup_highlight_text": "#FFFFFF",
+      "sidebar": "#FFFFFF",
+      "sidebar_text": "#141418",
+      "sidebar_border": "#C9C2B4",
+      "sidebar_highlight": "#0B6F80",
+      "sidebar_highlight_text": "#FFFFFF"
+    },
+    "properties": {
+      "color_scheme": "light",
+      "content_color_scheme": "light"
+    }
+  }
+}
