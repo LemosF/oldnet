@@ -23,9 +23,15 @@ function claim(window) {
     const activity = readConfig(app.tab, "");      // read each time: oldnet-tab updates it
     if (!activity) return;
 
-    // Only the app's first window: later ones are composers and dialogs.
+    // Later windows (first-run wizard, account setup, composers, dialogs) follow the app:
+    // if its main window lives on the tab, they open there too, as normal windows.
+    // An app the user opened on Desktop keeps all its windows on Desktop.
     const others = workspace.windowList().filter(w => w !== window && sameApp(w, window));
-    if (others.length > 0) return;
+    if (others.length > 0) {
+        const appOnTab = others.some(w => w.activities.indexOf(activity) !== -1);
+        if (appOnTab && window.activities.indexOf(activity) === -1) window.activities = [activity];
+        return;
+    }
 
     const onTab = window.activities.indexOf(activity) !== -1
         || (window.activities.length === 0 && workspace.currentActivity === activity);
