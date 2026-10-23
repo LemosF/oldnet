@@ -8,7 +8,7 @@ widgetStyle=Breeze
 Theme=OldNet
 
 [plasmarc][Theme]
-name=default
+name=oldnet
 
 [kcminputrc][Mouse]
 cursorTheme=OldNet-Cursors
