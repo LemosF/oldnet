@@ -9,8 +9,11 @@ SRC=/usr/share/oldnet/thunderbird/themes
 DEFAULT_THEME=oldnet-nightmarket@themes.oldnet.os
 
 # Thunderbird reads policies from <install dir>/distribution/policies.json.
-appini=$(rpm -ql thunderbird | grep -m1 '/application.ini$') \
-  || { echo "Thunderbird install dir not found"; exit 1; }
+# (List to a file: "rpm -ql | grep -m1" kills rpm with SIGPIPE and fails under pipefail.)
+rpm -ql thunderbird > /tmp/thunderbird.files
+appini=$(grep '/application.ini$' /tmp/thunderbird.files | head -n1 || true)
+rm -f /tmp/thunderbird.files
+[ -n "$appini" ] || { echo "Thunderbird install dir not found"; exit 1; }
 DIST="$(dirname "$appini")/distribution"
 mkdir -p "$DIST"
 
