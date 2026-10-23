@@ -125,10 +125,20 @@ panel() {
               if (p.location == 'bottom') p.hiding = '$hiding'; });" || true
 }
 
+# Desktop images drop Bazzite's "Return to Gaming Mode" desktop shortcut (it is gone
+# from /etc/skel there). Remove the copy older users got, and only that exact file.
+drop_gamemode_shortcut() {
+  local f="$HOME/Desktop/Return.desktop"
+  [ -e /etc/skel/Desktop/Return.desktop ] && return   # deck image: keep it
+  [ -f "$f" ] && grep -q '^Exec=/usr/bin/return-to-gamemode$' "$f" && rm -f "$f"
+  return 0
+}
+
 case "${1:-}" in
   ensure)
     for t in "${TABS[@]}"; do ensure_tab "$t" >/dev/null; done
-    sync_kwin ;;
+    sync_kwin
+    drop_gamemode_shortcut ;;
   switch)
     name=$(tab_name "${2:?tab number or name}")
     [ -n "$name" ] || exit 1

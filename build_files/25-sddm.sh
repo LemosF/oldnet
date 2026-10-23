@@ -34,6 +34,10 @@ if systemctl cat bazzite-autologin.service >/dev/null 2>&1; then
 fi
 rm -f /usr/lib/sddm/sddm.conf.d/holo.conf
 
+# No "Return to Gaming Mode" shortcut on the desktop of new users: desktop images do
+# not boot into Game Mode. (oldnet-tab removes copies existing users already have.)
+rm -f /etc/skel/Desktop/Return.desktop
+
 # The Steam sessions stay available, but a new desktop system starts on Plasma
 # (they sort first alphabetically, so SDDM would otherwise preselect Steam).
 echo "defaultSession=Plasma" >> /usr/share/sddm/themes/oldnet/theme.conf
