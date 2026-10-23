@@ -1,31 +1,78 @@
-# OldNet OS - Plymouth (NAO TESTADO: validar com `plymouthd --debug` / `plymouth --show-splash`)
-Window.SetBackgroundTopColor(0.039, 0.039, 0.047);
+# OldNet OS boot splash (Plymouth "script" module).
+# Logo, name and a block progress bar with "JACK-IN... NN%" under it; a password field
+# for encrypted disks; questions and messages from the system. The initramfs carries
+# no OldNet fonts, so text uses Plymouth's generic monospace font.
+#
+# Layout: everything is stacked (logo, name, bar, status, field) with fixed gaps and the
+# whole block is centred. It is laid out again when the resolution changes during boot
+# (VMs and some GPUs switch modes after the splash starts).
+
+Window.SetBackgroundTopColor(0.039, 0.039, 0.047);      # #0A0A0C
 Window.SetBackgroundBottomColor(0.039, 0.039, 0.047);
 
-sw = Window.GetWidth();
-sh = Window.GetHeight();
+FONT = "Monospace 12";
+GAP_NAME = 30;      # logo -> name
+GAP_BAR = 56;       # name -> bar
+GAP_STATUS = 18;    # bar -> status line
+GAP_FIELD = 64;     # status -> password field
 
 mark = Image("logo-mark.png");
-mark_sprite = Sprite(mark);
-mark_sprite.SetPosition(sw / 2 - mark.GetWidth() / 2, sh * 0.22, 1);
-
 word = Image("logo-wordmark.png");
-word_sprite = Sprite(word);
-word_sprite.SetPosition(sw / 2 - word.GetWidth() / 2, sh * 0.22 + mark.GetHeight() + 30, 1);
-
 frame = Image("progress-frame.png");
-frame_sprite = Sprite(frame);
-fx = sw / 2 - frame.GetWidth() / 2;
-fy = sh * 0.65;
-frame_sprite.SetPosition(fx, fy, 1);
-
 block_on = Image("progress-block-on.png");
 block_off = Image("progress-block-off.png");
+field = frame.Scale(frame.GetWidth(), 36);
+
+mark_sprite = Sprite(mark);
+word_sprite = Sprite(word);
+frame_sprite = Sprite(frame);
 N = 19;
-for (i = 0; i < N; i++) {
-    block[i] = Sprite(block_off);
-    block[i].SetPosition(fx + 8 + i * 24, fy + 8, 2);
+for (i = 0; i < N; i++) block[i] = Sprite(block_off);
+
+status_sprite = Sprite();
+message_sprite = Sprite();
+prompt_sprite = Sprite();
+field_sprite = Sprite();
+entry_sprite = Sprite();
+
+status_text = "JACK-IN... 0%";
+message_text = "";
+
+fun layout() {
+    global.sw = Window.GetWidth();
+    global.sh = Window.GetHeight();
+    block_h = mark.GetHeight() + GAP_NAME + word.GetHeight() + GAP_BAR + frame.GetHeight()
+              + GAP_STATUS + 20;
+    top = (global.sh - block_h) / 2;
+    if (top < 0) top = 0;
+
+    mark_sprite.SetPosition(global.sw / 2 - mark.GetWidth() / 2, top, 1);
+    word_y = top + mark.GetHeight() + GAP_NAME;
+    word_sprite.SetPosition(global.sw / 2 - word.GetWidth() / 2, word_y, 1);
+
+    global.fx = global.sw / 2 - frame.GetWidth() / 2;
+    global.fy = word_y + word.GetHeight() + GAP_BAR;
+    frame_sprite.SetPosition(global.fx, global.fy, 1);
+    for (i = 0; i < N; i++) block[i].SetPosition(global.fx + 8 + i * 24, global.fy + 8, 2);
+
+    global.status_y = global.fy + frame.GetHeight() + GAP_STATUS;
+    global.field_y = global.status_y + GAP_FIELD;
+    centre_text(status_sprite, global.status_text, global.status_y, 0.60, 0.60, 0.64);
+    centre_text(message_sprite, global.message_text, global.sh * 0.88, 1.0, 0.33, 0.41);
 }
+
+fun centre_text(sprite, text, y, r, g, b) {
+    img = Image.Text(text, r, g, b, 1, FONT);
+    sprite.SetImage(img);
+    sprite.SetPosition(global.sw / 2 - img.GetWidth() / 2, y, 3);
+}
+
+layout();
+
+fun refresh_cb() {
+    if (Window.GetWidth() != global.sw || Window.GetHeight() != global.sh) layout();
+}
+Plymouth.SetRefreshFunction(refresh_cb);
 
 fun boot_progress_cb(time, progress) {
     n = Math.Int(progress * N);
@@ -33,5 +80,49 @@ fun boot_progress_cb(time, progress) {
         if (i < n) block[i].SetImage(block_on);
         else block[i].SetImage(block_off);
     }
+    global.status_text = "JACK-IN... " + Math.Int(progress * 100) + "%";
+    centre_text(status_sprite, global.status_text, global.status_y, 0.60, 0.60, 0.64);
 }
 Plymouth.SetBootProgressFunction(boot_progress_cb);
+
+# --- Password (encrypted disk) and questions: prompt, framed field, entry
+fun show_entry(prompt, text) {
+    status_sprite.SetOpacity(0);
+    centre_text(prompt_sprite, prompt, global.field_y - 30, 0.93, 0.91, 0.89);    # #ECE9E4
+    prompt_sprite.SetOpacity(1);
+    field_sprite.SetImage(field);
+    field_sprite.SetPosition(global.fx, global.field_y, 3);
+    field_sprite.SetOpacity(1);
+    entry_img = Image.Text(text, 0.23, 0.84, 0.91, 1, FONT);                      # #3AD7E8
+    entry_sprite.SetImage(entry_img);
+    entry_sprite.SetPosition(global.fx + 14, global.field_y + 18 - entry_img.GetHeight() / 2, 4);
+    entry_sprite.SetOpacity(1);
+}
+
+fun display_password_cb(prompt, bullets) {
+    stars = "";
+    for (i = 0; i < bullets; i++) stars = stars + "*";
+    if (prompt == "") prompt = "Disk password";
+    show_entry(prompt, stars + "_");
+}
+Plymouth.SetDisplayPasswordFunction(display_password_cb);
+
+fun display_question_cb(prompt, entry) {
+    show_entry(prompt, entry + "_");
+}
+Plymouth.SetDisplayQuestionFunction(display_question_cb);
+
+fun display_normal_cb() {
+    prompt_sprite.SetOpacity(0);
+    field_sprite.SetOpacity(0);
+    entry_sprite.SetOpacity(0);
+    status_sprite.SetOpacity(1);
+}
+Plymouth.SetDisplayNormalFunction(display_normal_cb);
+
+# --- Messages from the system (e.g. disk checks), coral, near the bottom
+fun message_cb(text) {
+    global.message_text = text;
+    centre_text(message_sprite, text, global.sh * 0.88, 1.0, 0.33, 0.41);        # #FF5468
+}
+Plymouth.SetMessageFunction(message_cb);

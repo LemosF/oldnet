@@ -1,0 +1,55 @@
+{
+  "manifest_version": 2,
+  "name": "OldNet Holo Tablet",
+  "description": "OldNet OS colour theme. Generated from themes/palettes/palettes.json.",
+  "version": "0.1",
+  "author": "OldNet OS",
+  "homepage_url": "https://github.com/LemosF/oldnet",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "oldnet-holotablet@themes.oldnet.os",
+      "strict_min_version": "115.0"
+    }
+  },
+  "theme": {
+    "colors": {
+      "frame": "#061416",
+      "frame_inactive": "#061416",
+      "tab_background_text": "#8FB3B8",
+      "tab_selected": "#0B2226",
+      "tab_text": "#DFF7F9",
+      "tab_line": "#E3A83B",
+      "tab_loading": "#E3A83B",
+      "toolbar": "#0B2226",
+      "toolbar_text": "#DFF7F9",
+      "toolbar_top_separator": "#12363C",
+      "toolbar_bottom_separator": "#12363C",
+      "toolbar_field": "#061416",
+      "toolbar_field_text": "#DFF7F9",
+      "toolbar_field_border": "#12363C",
+      "toolbar_field_focus": "#061416",
+      "toolbar_field_text_focus": "#DFF7F9",
+      "toolbar_field_border_focus": "#7EF0FF",
+      "toolbar_field_highlight": "#3AD7E8",
+      "toolbar_field_highlight_text": "#061416",
+      "button_background_hover": "#10262B",
+      "button_background_active": "#08191C",
+      "icons": "#DFF7F9",
+      "icons_attention": "#3CF0B0",
+      "popup": "#10262B",
+      "popup_text": "#DFF7F9",
+      "popup_border": "#12363C",
+      "popup_highlight": "#3AD7E8",
+      "popup_highlight_text": "#061416",
+      "sidebar": "#061416",
+      "sidebar_text": "#DFF7F9",
+      "sidebar_border": "#12363C",
+      "sidebar_highlight": "#3AD7E8",
+      "sidebar_highlight_text": "#061416"
+    },
+    "properties": {
+      "color_scheme": "dark",
+      "content_color_scheme": "dark"
+    }
+  }
+}

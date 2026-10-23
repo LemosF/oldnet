@@ -1,8 +1,8 @@
 [Desktop Entry]
 Type=Application
-Name=OldNet Tabs: start on Desktop
-Comment=Every session starts on the Desktop tab (KDE would restore the last activity)
-Exec=/usr/bin/oldnet-tab switch 1
+Name=OldNet Tabs: session start
+Comment=Start every session on the Desktop tab and preload the Mail and Messages apps
+Exec=/usr/bin/oldnet-tab start
 Icon=oldnet-tabs
 NoDisplay=true
 X-KDE-autostart-phase=2

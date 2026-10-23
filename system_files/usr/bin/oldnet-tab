@@ -1,20 +1,25 @@
 #!/usr/bin/bash
 # oldnet-tab: backend of OldNet Tabs. Each tab is a KDE activity named after the tab.
 #
+#   oldnet-tab start                      session start: prepare the tabs, open Desktop,
+#                                         preload the Mail and Messages apps on their tabs
 #   oldnet-tab ensure                     create the tab activities that are missing
-#   oldnet-tab switch <N|name> [--launch] switch to a tab (1-based number or name),
-#                                         creating it; --launch opens the tab's app
-#                                         (the widget passes it when the tab is empty)
+#   oldnet-tab switch <N|name> [--launch] switch to a tab (1-based number or name);
+#                                         --launch opens the tab's app (the widget passes
+#                                         it when the tab is empty)
 #   oldnet-tab panel  <name>              show the taskbar only on tabs that have one
 #
-# Used by the OldNet Tabs widget and by the Meta+1..5 shortcuts. Talks to the activity
-# manager and plasmashell over the session bus, so it works for new and existing users.
+# Used by the OldNet Tabs widget, the Meta+1..5 shortcuts and the session autostart.
+# Talks to the activity manager and plasmashell over the session bus, so it works for
+# new and existing users.
 set -euo pipefail
 
 TABS=(Desktop Mail Messages Games Code)
 NO_TASKBAR=" Mail Messages "                 # these tabs have no taskbar
+APP_TABS=(Mail Messages)                     # tabs owned by an app
 WALLPAPER="file:///usr/share/wallpapers/OldNet-BlissNeon/"
 DARK="10,10,12"                              # plain background where an app fills the tab
+KWIN_GROUP=Script-oldnet-tab-apps
 
 am() {
   busctl --user --json=short call org.kde.ActivityManager /ActivityManager/Activities \
@@ -24,14 +29,17 @@ shell_js() {
   busctl --user call org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell evaluateScript s "$1" >/dev/null
 }
 
-activity_id() {   # name -> id (empty when missing)
-  local id
-  for id in $(am ListActivities | jq -r '.data[0][]'); do
-    if [ "$(am ActivityName s "$id" | jq -r '.data[0]')" = "$1" ]; then
-      echo "$id"
-      return
-    fi
-  done
+# All activities in one D-Bus call: ACT[name]=id, ORDER=ids in manager order.
+declare -A ACT=()
+ORDER=()
+load_activities() {
+  local id name
+  ACT=(); ORDER=()
+  while IFS=$'\t' read -r id name; do
+    [ -n "$id" ] || continue
+    ORDER+=("$id")
+    [ -n "${ACT[$name]:-}" ] || ACT[$name]=$id
+  done < <(am ListActivitiesWithInformation | jq -r '.data[0][] | "\(.[0])\t\(.[1])"')
 }
 
 set_background() {   # activity id, tab name
@@ -52,32 +60,28 @@ set_background() {   # activity id, tab name
 
 original_activity() {   # the user's own first activity: the first one that is not a tab
   local id name
-  for id in $(am ListActivities | jq -r '.data[0][]'); do
+  for id in "${ORDER[@]}"; do
     name=$(am ActivityName s "$id" | jq -r '.data[0]')
     [[ " ${TABS[*]} " == *" $name "* ]] || { echo "$id"; return; }
   done
 }
 
-ensure_tab() {   # name -> id, creating the activity if needed
-  local name=$1 id
-  id=$(activity_id "$name")
-  if [ -z "$id" ] && [ "$name" = Desktop ]; then
-    # The user's original activity ("Default") becomes the Desktop tab. Never the
-    # current activity: that may be another tab.
-    id=$(original_activity)
-    if [ -n "$id" ]; then
+ensure_all() {   # create missing tab activities; leaves ACT up to date
+  local t id
+  load_activities
+  for t in "${TABS[@]}"; do
+    [ -z "${ACT[$t]:-}" ] || continue
+    if [ "$t" = Desktop ] && id=$(original_activity) && [ -n "$id" ]; then
+      # The user's original activity ("Default") becomes the Desktop tab. Never the
+      # current activity: that may be another tab.
       am SetActivityName ss "$id" Desktop >/dev/null
     else
-      id=$(am AddActivity s Desktop | jq -r '.data[0]')
-      sleep 0.5
-      set_background "$id" Desktop
+      id=$(am AddActivity s "$t" | jq -r '.data[0]')
+      sleep 0.5                       # let plasmashell create the activity's desktop
+      set_background "$id" "$t"
     fi
-  elif [ -z "$id" ]; then
-    id=$(am AddActivity s "$name" | jq -r '.data[0]')
-    sleep 0.5                       # let plasmashell create the activity's desktop
-    set_background "$id" "$name"
-  fi
-  echo "$id"
+    ACT[$t]=$id
+  done
 }
 
 tab_name() {   # 1-based number or name -> name
@@ -91,16 +95,18 @@ tab_name() {   # 1-based number or name -> name
 # The KWin script oldnet-tab-apps opens Mail/Messages full screen on their tabs; it
 # needs this user's activity ids. Write them only when they change.
 sync_kwin() {
-  local t id current changed=0
-  for t in Mail Messages; do
-    id=$(activity_id "$t")
-    current=$(kreadconfig6 --file kwinrc --group Script-oldnet-tab-apps --key "$t")
-    if [ -n "$id" ] && [ "$id" != "$current" ]; then
-      kwriteconfig6 --file kwinrc --group Script-oldnet-tab-apps --key "$t" "$id"
+  local t current changed=0
+  for t in "${APP_TABS[@]}"; do
+    current=$(kreadconfig6 --file kwinrc --group "$KWIN_GROUP" --key "$t")
+    if [ -n "${ACT[$t]:-}" ] && [ "${ACT[$t]}" != "$current" ]; then
+      kwriteconfig6 --file kwinrc --group "$KWIN_GROUP" --key "$t" "${ACT[$t]}"
       changed=1
     fi
   done
-  [ "$changed" = 0 ] || busctl --user call org.kde.KWin /KWin org.kde.KWin reconfigure >/dev/null || true
+  [ "$changed" = 0 ] || kwin_reconfigure
+}
+kwin_reconfigure() {
+  busctl --user call org.kde.KWin /KWin org.kde.KWin reconfigure >/dev/null || true
 }
 
 # The app that owns a tab: first desktop file found (RPM or Flatpak id).
@@ -117,6 +123,8 @@ tab_app() {
     done
   done
 }
+# 9>&-: the app must not inherit the lock below, or it would hold it while it runs.
+launch() { setsid -f gio launch "$1" >/dev/null 2>&1 9>&- || true; }
 
 panel() {
   local hiding=none
@@ -125,24 +133,53 @@ panel() {
               if (p.location == 'bottom') p.hiding = '$hiding'; });" || true
 }
 
+# Desktop images drop Bazzite's "Return to Gaming Mode" desktop shortcut (it is gone
+# from /etc/skel there). Remove the copy older users got, and only that exact file.
+drop_gamemode_shortcut() {
+  local f="$HOME/Desktop/Return.desktop"
+  [ -e /etc/skel/Desktop/Return.desktop ] && return   # deck image: keep it
+  [ -f "$f" ] && grep -q '^Exec=/usr/bin/return-to-gamemode$' "$f" && rm -f "$f"
+  return 0
+}
+
+# Only one oldnet-tab changes activities at a time (widget and autostart start together;
+# two concurrent "ensure" runs could create duplicate tabs).
+exec 9>"${XDG_RUNTIME_DIR:-/tmp}/oldnet-tab.lock"
+flock 9
+
 case "${1:-}" in
+  start)
+    ensure_all
+    sync_kwin
+    drop_gamemode_shortcut
+    am SetCurrentActivity s "${ACT[Desktop]}" >/dev/null
+    panel Desktop
+    # Preload the tab apps so Mail and Messages are ready when opened. For the next
+    # 2 minutes the KWin script moves their first window onto its tab.
+    kwriteconfig6 --file kwinrc --group "$KWIN_GROUP" --key PreloadUntil "$(( $(date +%s) + 120 ))"
+    kwin_reconfigure
+    for t in "${APP_TABS[@]}"; do
+      app=$(tab_app "$t")
+      [ -z "$app" ] || launch "$app"
+    done ;;
   ensure)
-    for t in "${TABS[@]}"; do ensure_tab "$t" >/dev/null; done
-    sync_kwin ;;
+    ensure_all
+    sync_kwin
+    drop_gamemode_shortcut ;;
   switch)
     name=$(tab_name "${2:?tab number or name}")
     [ -n "$name" ] || exit 1
-    id=$(ensure_tab "$name")
-    sync_kwin
-    am SetCurrentActivity s "$id" >/dev/null
+    load_activities
+    [ -n "${ACT[$name]:-}" ] || { ensure_all; sync_kwin; }
+    am SetCurrentActivity s "${ACT[$name]}" >/dev/null
     panel "$name"
     if [ "${3:-}" = --launch ]; then
       app=$(tab_app "$name")
-      [ -z "$app" ] || setsid -f gio launch "$app" >/dev/null 2>&1
+      [ -z "$app" ] || launch "$app"
     fi ;;
   panel)
     panel "${2:?tab name}" ;;
   *)
-    sed -n '2,8s/^# \{0,1\}//p' "$0" >&2
+    sed -n '2,12s/^# \{0,1\}//p' "$0" >&2
     exit 2 ;;
 esac
