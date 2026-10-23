@@ -4,8 +4,10 @@
     "Name": "OldNet Daylight",
     "Authors": [
       {
-        "Name": "OldNet"
+        "Name": "OldNet OS"
       }
-    ]
+    ],
+    "License": "Apache-2.0",
+    "Website": "https://github.com/LemosF/oldnet"
   }
 }

@@ -16,7 +16,10 @@ tabBar.location = "top";
 tabBar.height = 2 * Math.floor(gridUnit * 1.8 / 2);
 tabBar.addWidget("org.oldnet.tabs");
 
+// Default wallpaper: Bliss Neon (a KDE wallpaper package, so the best size is picked).
 var allDesktops = desktopsForActivity(currentActivity());
 for (var i = 0; i < allDesktops.length; i++) {
     allDesktops[i].wallpaperPlugin = "org.kde.image";
+    allDesktops[i].currentConfigGroup = ["Wallpaper", "org.kde.image", "General"];
+    allDesktops[i].writeConfig("Image", "file:///usr/share/wallpapers/OldNet-BlissNeon/");
 }

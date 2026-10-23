@@ -1,57 +1,45 @@
 #!/usr/bin/bash
-# OldNet Tabs: 5 virtual desktops, Meta+1..5 to switch, KWin rules that send
-# apps to their tab. The widget itself is copied from widgets/ by the Containerfile.
+# OldNet Tabs: each tab is a KDE activity (Desktop, Mail, Messages, Games, Code),
+# managed by /usr/bin/oldnet-tab. Meta+1..5 switch tabs. The widget itself is copied
+# from widgets/ by the Containerfile.
 set -euo pipefail
 
-KWINRC=/etc/xdg/kwinrc
-RULES=/etc/xdg/kwinrulesrc
 SHORTCUTS=/etc/xdg/kglobalshortcutsrc
+TABS=(Desktop Mail Messages Games Code)
 
-# Fixed ids so the KWin rules below can point at a desktop.
-NAMES=(Desktop Mail Messages Games Code)
-IDS=(
-  0e1d0001-0000-4000-8000-0000000000a1
-  0e1d0002-0000-4000-8000-0000000000a2
-  0e1d0003-0000-4000-8000-0000000000a3
-  0e1d0004-0000-4000-8000-0000000000a4
-  0e1d0005-0000-4000-8000-0000000000a5
-)
+chmod 0755 /usr/bin/oldnet-tab
 
-kwriteconfig6 --file "$KWINRC" --group Desktops --key Number 5
-kwriteconfig6 --file "$KWINRC" --group Desktops --key Rows 1
-for i in "${!NAMES[@]}"; do
+# The apps that own the Mail and Messages tabs (Option 3, step 1; our own apps come later).
+dnf5 -y install thunderbird neochat
+dnf5 clean all
+# oldnet-tab looks for these desktop file names; fail early if the packages renamed them.
+found_mail=""
+for f in org.mozilla.Thunderbird thunderbird net.thunderbird.Thunderbird; do
+  [ -f "/usr/share/applications/$f.desktop" ] && found_mail=$f
+done
+[ -n "$found_mail" ] || { echo "Thunderbird desktop file not found"; exit 1; }
+[ -f /usr/share/applications/org.kde.neochat.desktop ] || { echo "NeoChat desktop file not found"; exit 1; }
+echo "Tab apps: Mail=$found_mail.desktop Messages=org.kde.neochat.desktop"
+
+# KWin script that opens them full screen on their tabs (see its main.js).
+kwriteconfig6 --file /etc/xdg/kwinrc --group Plugins --key oldnet-tab-appsEnabled true
+
+for i in "${!TABS[@]}"; do
   n=$((i + 1))
-  kwriteconfig6 --file "$KWINRC" --group Desktops --key "Id_$n" "${IDS[$i]}"
-  kwriteconfig6 --file "$KWINRC" --group Desktops --key "Name_$n" "${NAMES[$i]}"
-
-  # Meta+N switches tab; free it from the task manager, which claims Meta+1..9 by default.
-  kwriteconfig6 --file "$SHORTCUTS" --group kwin --key "Switch to Desktop $n" \
-    "Meta+$n,Ctrl+F$n,Switch to Desktop $n"
+  # The task manager claims Meta+1..9 by default; give Meta+1..5 to the tabs.
   kwriteconfig6 --file "$SHORTCUTS" --group plasmashell --key "activate task manager entry $n" \
     "none,Meta+$n,Activate Task Manager Entry $n"
+
+  # A hidden launcher per tab; kglobalaccel binds X-KDE-Shortcuts like Konsole's Ctrl+Alt+T.
+  cat > "/usr/share/applications/oldnet-tab-$n.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=OldNet Tab $n: ${TABS[$i]}
+Exec=/usr/bin/oldnet-tab switch $n
+Icon=oldnet-tabs
+NoDisplay=true
+X-KDE-Shortcuts=Meta+$n
+EOF
 done
-
-# Window rules: open each app on its tab once ("apply initially" = 3), the user can still move it.
-# wmclassmatch: 1 = exact, 3 = regex. Regexes cover both RPM and Flatpak class names.
-add_rule() { # group description match-type wmclass desktop-index
-  kwriteconfig6 --file "$RULES" --group "$1" --key Description "$2"
-  kwriteconfig6 --file "$RULES" --group "$1" --key wmclassmatch "$3"
-  kwriteconfig6 --file "$RULES" --group "$1" --key wmclass "$4"
-  kwriteconfig6 --file "$RULES" --group "$1" --key wmclasscomplete false
-  kwriteconfig6 --file "$RULES" --group "$1" --key types 1
-  kwriteconfig6 --file "$RULES" --group "$1" --key desktops "${IDS[$5]}"
-  kwriteconfig6 --file "$RULES" --group "$1" --key desktopsrule 3
-}
-add_rule oldnet-mail     "OldNet: Thunderbird on the Mail tab"   3 '^(org\.mozilla\.)?[Tt]hunderbird$' 1
-add_rule oldnet-messages "OldNet: NeoChat on the Messages tab"   3 '^(org\.kde\.)?neochat$'            2
-# Exact "steam" = the client only; games run as steam_app_<id> and stay where launched.
-add_rule oldnet-games    "OldNet: Steam client on the Games tab" 1 'steam'                             3
-add_rule oldnet-code     "OldNet: VS Code on the Code tab"       3 '^(code|com\.visualstudio\.code)$'  4
-
-existing=$(kreadconfig6 --file "$RULES" --group General --key rules)
-ours="oldnet-mail,oldnet-messages,oldnet-games,oldnet-code"
-all="${existing:+$existing,}$ours"
-kwriteconfig6 --file "$RULES" --group General --key rules "$all"
-kwriteconfig6 --file "$RULES" --group General --key count "$(tr ',' '\n' <<<"$all" | grep -c .)"
 
 rm -f /usr/share/plasma/plasmoids/.gitkeep

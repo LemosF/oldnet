@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=OldNet Tabs: start on Desktop
+Comment=Every session starts on the Desktop tab (KDE would restore the last activity)
+Exec=/usr/bin/oldnet-tab switch 1
+Icon=oldnet-tabs
+NoDisplay=true
+X-KDE-autostart-phase=2
+OnlyShowIn=KDE;

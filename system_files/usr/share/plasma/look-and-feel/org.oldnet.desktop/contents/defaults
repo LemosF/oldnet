@@ -5,13 +5,13 @@ ColorScheme=OldNetNightMarket
 widgetStyle=Breeze
 
 [kdeglobals][Icons]
-Theme=breeze-dark
+Theme=OldNet
 
 [plasmarc][Theme]
 name=default
 
 [kcminputrc][Mouse]
-cursorTheme=breeze_cursors
+cursorTheme=OldNet-Cursors
 
 [kwinrc][org.kde.kdecoration2]
 library=org.kde.kwin.aurorae
