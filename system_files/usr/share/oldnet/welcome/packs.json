@@ -1,0 +1,47 @@
+{
+  "_comment": "OldNet welcome app packs. Each app is a Flathub id. Edit freely.",
+  "packs": [
+    {
+      "id": "streaming",
+      "icon": "oldnet-pack-streaming",
+      "name": { "en": "Streaming", "pt": "Streaming" },
+      "description": { "en": "Record and stream, talk to your team", "pt": "Gravar e transmitir, falar com a equipa" },
+      "apps": [
+        { "id": "com.obsproject.Studio", "name": "OBS Studio" },
+        { "id": "com.discordapp.Discord", "name": "Discord" }
+      ]
+    },
+    {
+      "id": "htpc",
+      "icon": "oldnet-pack-htpc",
+      "name": { "en": "Living room (HTPC)", "pt": "Sala (HTPC)" },
+      "description": { "en": "Films, series and music on the TV", "pt": "Filmes, séries e música na TV" },
+      "apps": [
+        { "id": "tv.kodi.Kodi", "name": "Kodi" },
+        { "id": "com.github.iwalton3.jellyfin-media-player", "name": "Jellyfin Media Player" }
+      ]
+    },
+    {
+      "id": "gaming",
+      "icon": "oldnet-pack-gaming",
+      "name": { "en": "Gaming extra", "pt": "Gaming extra" },
+      "description": { "en": "Epic and GOG games, Proton versions, Windows apps", "pt": "Jogos Epic e GOG, versões do Proton, apps Windows" },
+      "apps": [
+        { "id": "com.heroicgameslauncher.hgl", "name": "Heroic Games Launcher" },
+        { "id": "net.davidotek.pupgui2", "name": "ProtonUp-Qt" },
+        { "id": "com.usebottles.bottles", "name": "Bottles" }
+      ]
+    },
+    {
+      "id": "family",
+      "icon": "oldnet-pack-family",
+      "name": { "en": "Family", "pt": "Família" },
+      "description": { "en": "Learning and drawing for the kids", "pt": "Aprender e desenhar para os mais novos" },
+      "apps": [
+        { "id": "org.kde.gcompris", "name": "GCompris" },
+        { "id": "org.tuxpaint.Tuxpaint", "name": "Tux Paint" },
+        { "id": "org.kde.kolourpaint", "name": "KolourPaint" }
+      ]
+    }
+  ]
+}

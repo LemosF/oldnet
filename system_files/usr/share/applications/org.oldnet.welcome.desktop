@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=OldNet Welcome
+Name[pt_PT]=Boas-vindas OldNet
+Comment=Pick a palette, install app packs, learn the tabs
+Comment[pt_PT]=Escolher a paleta, instalar packs de apps, conhecer as tabs
+Exec=/usr/bin/oldnet-welcome
+Icon=oldnet-welcome
+Categories=System;Settings;
+Keywords=welcome;setup;packs;flatpak;palette;oldnet;

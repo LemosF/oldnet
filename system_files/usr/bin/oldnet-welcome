@@ -1,0 +1,3 @@
+#!/usr/bin/bash
+# OldNet welcome app (palette, Flatpak packs, tour of the tabs). See /usr/lib/oldnet-welcome.
+exec /usr/bin/python3 /usr/lib/oldnet-welcome/main.py "$@"

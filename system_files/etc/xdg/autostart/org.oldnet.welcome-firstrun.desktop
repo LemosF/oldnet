@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=OldNet Welcome (first run)
+Comment=Opens the OldNet welcome app until the user turns it off
+Exec=/usr/bin/oldnet-welcome --first-run
+Icon=oldnet-welcome
+NoDisplay=true
+X-KDE-autostart-phase=2
+OnlyShowIn=KDE;
